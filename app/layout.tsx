@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { GeistSans } from "geist/font/sans";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Portfolio",
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", GeistSans.variable)}>
       <body>
         <header className="border-b border-neutral-200">
           <nav aria-label="Main navigation" className="px-page-x py-page-y">
@@ -23,6 +25,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               </li>
               <li>
                 <Link className="text-primary hover:text-accent" href="/contact">Contact</Link>
+              </li>
+              <li>
+                <Link className="text-primary hover:text-accent" href="/playground">Playground</Link>
               </li>
             </ul>
           </nav>
