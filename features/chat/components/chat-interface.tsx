@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
@@ -11,6 +11,12 @@ import { cn } from "@/lib/utils";
 export function ChatInterface() {
   // useState keeps the controlled textarea value in the browser between renders.
   const [input, setInput] = useState("");
+  // Tracks whether streamed content should continue following the newest message.
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  // The scrollable conversation and its bottom marker let the component measure
+  // scroll position and smoothly follow new streamed content.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   // useMemo creates the transport once, preventing a new API client on every render.
   const transport = useMemo(
@@ -32,6 +38,35 @@ export function ChatInterface() {
   // reaches the UI. This prevents a status change from causing a visual flash.
   const showThinkingIndicator = isGenerating && !hasAssistantText;
 
+  // New messages and streamed text update `messages`. Follow them only while
+  // the visitor is near the bottom, so reading an earlier answer is never interrupted.
+  useEffect(() => {
+    if (!shouldAutoScroll) {
+      return;
+    }
+
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, shouldAutoScroll, showThinkingIndicator]);
+
+  function handleConversationScroll() {
+    const container = scrollContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    // A small tolerance treats a visitor as "at the bottom" without requiring
+    // pixel-perfect positioning, including while the stream changes height.
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShouldAutoScroll(distanceFromBottom <= 80);
+  }
+
+  function handleJumpToLatest() {
+    setShouldAutoScroll(true);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -47,47 +82,69 @@ export function ChatInterface() {
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div
-        aria-live="polite"
-        aria-label="Conversation"
-        className="min-h-80 space-y-4 p-4 sm:p-6"
-      >
-        {messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Try asking: “What technologies do you use?”
-          </p>
-        ) : (
-          messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))
-        )}
-
+      <div className="relative">
         <div
-          aria-hidden={!showThinkingIndicator}
-          className={cn(
-            "overflow-hidden transition-[max-height,opacity,transform] duration-200 ease-out",
-            showThinkingIndicator
-              ? "max-h-10 translate-y-0 opacity-100"
-              : "max-h-0 -translate-y-1 opacity-0"
-          )}
+          ref={scrollContainerRef}
+          aria-atomic="false"
+          aria-busy={isGenerating}
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-label="Conversation"
+          onScroll={handleConversationScroll}
+          role="log"
+          className="min-h-80 max-h-[min(60vh,36rem)] space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6"
         >
-          <p
-            className="flex items-center gap-2 text-sm text-muted-foreground"
-            role={showThinkingIndicator ? "status" : undefined}
+          {messages.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Try asking: “What technologies do you use?”
+            </p>
+          ) : (
+            messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))
+          )}
+
+          <div
+            aria-hidden={!showThinkingIndicator}
+            className={cn(
+              "overflow-hidden transition-[max-height,opacity,transform] duration-200 ease-out",
+              showThinkingIndicator
+                ? "max-h-10 translate-y-0 opacity-100"
+                : "max-h-0 -translate-y-1 opacity-0"
+            )}
           >
-            <span className="inline-flex gap-1" aria-hidden="true">
-              <span className="size-1.5 animate-pulse rounded-full bg-current" />
-              <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
-              <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
-            </span>
-            Thinking…
-          </p>
+            <p
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+              role={showThinkingIndicator ? "status" : undefined}
+            >
+              <span className="inline-flex gap-1" aria-hidden="true">
+                <span className="size-1.5 animate-pulse rounded-full bg-current" />
+                <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
+                <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
+              </span>
+              Thinking…
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              Something went wrong. Please try again.
+            </p>
+          )}
+
+          <div ref={bottomRef} />
         </div>
 
-        {error && (
-          <p className="text-sm text-destructive" role="alert">
-            Something went wrong. Please try again.
-          </p>
+        {!shouldAutoScroll && messages.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="absolute bottom-3 right-3 shadow-md"
+            onClick={handleJumpToLatest}
+          >
+            Jump to latest
+          </Button>
         )}
       </div>
 
@@ -110,7 +167,12 @@ export function ChatInterface() {
             Responses are generated by AI and may be incomplete.
           </p>
           {isGenerating ? (
-            <Button type="button" variant="outline" onClick={stop}>
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Stop generating response"
+              onClick={stop}
+            >
               Stop
             </Button>
           ) : (
