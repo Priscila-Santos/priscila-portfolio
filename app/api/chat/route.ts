@@ -1,5 +1,6 @@
 import {
   convertToModelMessages,
+  stepCountIs,
   streamText,
   validateUIMessages,
 } from "ai";
@@ -8,6 +9,7 @@ import {
   portfolioChatModel,
   portfolioChatSystemPrompt,
 } from "@/lib/ai/portfolio-chat";
+import { portfolioTools, type PortfolioChatMessage } from "@/lib/ai/tools";
 
 type ChatRequestBody = {
   messages: unknown;
@@ -37,11 +39,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "A messages array is required." }, { status: 400 });
   }
 
-  // Validate untrusted UI messages, then convert their UI-oriented shape into
-  // the model-message format Anthropic expects. This route currently has no
-  // tools or custom data parts, so no additional schemas are needed.
-  const messages = await validateUIMessages({ messages: body.messages });
-  const modelMessages = await convertToModelMessages(messages);
+  // Tool schemas also validate any completed calls that return with the
+  // conversation history, before those messages are sent back to the model.
+  const messages = await validateUIMessages<PortfolioChatMessage>({
+    messages: body.messages,
+    tools: portfolioTools,
+  });
+  const modelMessages = await convertToModelMessages(messages, {
+    tools: portfolioTools,
+  });
 
   // streamText starts Anthropic's response and exposes a readable stream. The
   // AI SDK serializes stream chunks into its UI message protocol so useChat can
@@ -50,6 +56,9 @@ export async function POST(request: Request) {
     model: portfolioChatModel,
     system: portfolioChatSystemPrompt,
     messages: modelMessages,
+    tools: portfolioTools,
+    // Allow Claude to receive the executed result and provide a short follow-up.
+    stopWhen: stepCountIs(5),
   });
 
   // Return the streaming HTTP response to the browser. The provider and its

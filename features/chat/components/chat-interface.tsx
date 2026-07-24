@@ -6,6 +6,7 @@ import { DefaultChatTransport } from "ai";
 
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/features/chat/components/chat-message";
+import type { PortfolioChatMessage } from "@/lib/ai/tools";
 import { cn } from "@/lib/utils";
 
 export function ChatInterface() {
@@ -25,7 +26,7 @@ export function ChatInterface() {
   );
 
   // useChat owns message history and updates it as the API stream delivers chunks.
-  const { messages, sendMessage, status, stop, error } = useChat({ transport });
+  const { messages, sendMessage, status, stop, error } = useChat<PortfolioChatMessage>({ transport });
   const isGenerating = status === "submitted" || status === "streaming";
   const latestMessage = messages.at(-1);
   const hasAssistantText =
