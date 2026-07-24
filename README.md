@@ -159,6 +159,22 @@ http://localhost:3000
 
 ---
 
+## Development-only state triggers
+
+The following hooks are enabled only while running `npm run dev`. They are ignored in a production build and do not call the model provider, so each UI state can be demonstrated safely.
+
+| State | Chat trigger phrase | Query parameter alternative | Result |
+|---|---|---|---|
+| Route error | `trigger route error` | `/ai?test=route-error` | Throws in the AI route and displays the `error.tsx` Recover boundary. |
+| Mid-stream failure | `trigger stream error` | `/api/chat?test=stream-error` | Sends a partial assistant response, then interrupts the AI SDK stream. |
+| HTTP rate limit | `trigger rate limit` | `/api/chat?test=rate-limit` | Returns HTTP 429 with `Retry-After`. |
+| Network-like timeout | `trigger timeout` | `/api/chat?test=timeout` | Waits five seconds to expose the skeleton, then returns HTTP 504. |
+| Malformed tool response | `trigger malformed tool response` | `/api/chat?test=malformed-tool` | Emits an invalid `scoreLead` result through the AI SDK UI-message stream. |
+
+For the API query-parameter forms, use a REST client or temporarily configure the chat transport endpoint. The phrase forms work directly from the portfolio assistant.
+
+---
+
 ## Learning Goals
 
 This project was developed as part of the FlyRank AI Engineering Internship.

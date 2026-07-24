@@ -47,7 +47,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 state={part.state}
                 input={part.input}
                 output={part.output}
-                errorText={part.errorText}
               />
             );
           }

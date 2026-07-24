@@ -7,7 +7,15 @@ export const metadata: Metadata = {
   description: "Ask Priscila's portfolio assistant about her work and approach.",
 };
 
-export default function AiPage() {
+type AiPageProps = {
+  searchParams?: { test?: string };
+};
+
+export default function AiPage({ searchParams }: AiPageProps) {
+  if (process.env.NODE_ENV !== "production" && searchParams?.test === "route-error") {
+    throw new Error("Development-only route error.");
+  }
+
   return (
     <section className="px-page-x py-section">
       <div className="mx-auto max-w-3xl space-y-6">
