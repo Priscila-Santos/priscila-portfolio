@@ -10,7 +10,7 @@ The `/work` page contains detailed case studies describing the engineering decis
 
 ## Live Demo
 
-> Add your deployed Vercel URL here.
+> [Deployed Vercel URL](https://priscila-portfolio.vercel.app/)
 
 ---
 
