@@ -24,6 +24,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <Link className="text-primary hover:text-accent" href="/work">Work</Link>
               </li>
               <li>
+                <Link className="text-primary hover:text-accent" href="/about">About</Link>
+              </li>
+              <li>
                 <Link className="text-primary hover:text-accent" href="/contact">Contact</Link>
               </li>
               <li>
