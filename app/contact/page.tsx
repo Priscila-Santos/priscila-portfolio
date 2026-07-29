@@ -1,12 +1,22 @@
 const contactLinks = [
-  { label: "Email", value: "[your email here]", href: "mailto:[your email here]" },
-  { label: "LinkedIn", value: "[linkedin.com/in/priscilasdsantos/]", href: "[https://www.linkedin.com/in/priscilasdsantos/]" },
+  { 
+    label: "Email", 
+    value: "priscila.santos.psds@gmail.com", 
+    href: "mailto:priscila.santos.psds@gmail.com" 
+  },
+  { 
+    label: "LinkedIn", 
+    value: "linkedin.com/in/priscilasdsantos/", 
+    href: "https://www.linkedin.com/in/priscilasdsantos/" },
   {
     label: "GitHub",
     value: "github.com/Priscila-Santos",
     href: "https://github.com/Priscila-Santos",
   },
-  { label: "Resume", value: "[link to resume PDF]", href: "[link to resume PDF]" },
+  { 
+    label: "Resume", 
+    value: "Priscila-Santos-Resume", 
+    href: "https://1drv.ms/b/c/a8ba1b696edd1899/IQCBFdZzwPdcQop1UhEFuGIsAfrEbfYfw_HxHJ7Yixfaikc?e=IczEDC" },
 ];
 
 export default function ContactPage() {
