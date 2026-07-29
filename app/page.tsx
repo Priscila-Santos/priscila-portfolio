@@ -21,7 +21,7 @@ export default function HomePage() {
         </Link>
 
         <Link
-          href="https://calendly.com/priscila-santos/30min"
+          href="https://calendly.com/priscila-s-santos-ba/30min"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rin"
