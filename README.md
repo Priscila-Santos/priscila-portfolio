@@ -22,20 +22,9 @@ The `/work` page contains detailed case studies describing the engineering decis
 - Typed tool definitions with Zod
 - Structured UI rendering for tool lifecycle states
 - Accessible, reusable React components
+- A reusable async lifecycle button (idle → loading → success/error) with intentional motion
 - Tailwind CSS design system
 - TypeScript throughout the project
-
----
-
-## Tech Stack
-
-- Next.js 14 (App Router)
-- React
-- TypeScript
-- Tailwind CSS
-- Vercel AI SDK
-- Zod
-- Server Components by default
 
 ---
 
@@ -119,6 +108,94 @@ forces the tool to throw an exception so the error state can be verified.
 
 ---
 
+# Buttons with a Brain (FE-AA1)
+
+A reusable button component, `AsyncActionButton`, that communicates its full
+lifecycle through motion instead of an abrupt swap: **idle → hover/focus →
+loading → success/error → idle**.
+
+Live demo: [`/playground/motion-button`](https://priscila-portfolio.vercel.app/playground/motion-button)
+
+## Component Contract
+
+### Name
+
+`AsyncActionButton`
+
+### Location
+
+`components/ui/async-action-button.tsx`
+
+### Presets
+
+`components/ui/lifecycle-button-presets.tsx` exports `SendButton` and
+`DeployButton` — two different actions built on the same component, proving
+the motion language (durations, easings, layout strategy) is one shared
+system rather than two separate implementations.
+
+### Input Props
+
+```ts
+{
+  onAction: () => Promise<void>;
+  icon: ReactNode;
+  idleLabel: string;
+  loadingLabel: string;
+  successLabel: string;
+  errorLabel?: string;
+  disabled?: boolean;
+  holdMs?: number; // how long success/error holds before resetting to idle
+}
+```
+
+## States
+
+| State | Trigger | Description |
+|---|---|---|
+| Idle | Default | Rest state, shows icon + label |
+| Hover / focus | Pointer or keyboard focus | Lifts 2px, shadow eases in (150ms) |
+| Active | Mouse/keyboard press | Compresses slightly (100ms, fast ease-in) |
+| Loading | Click fires `onAction` | Label cross-fades to a spinner; button disables itself so repeat clicks can't fire overlapping requests |
+| Success | `onAction` resolves | Icon morphs to a checkmark with a small overshoot; auto-returns to idle after 1.4s |
+| Error | `onAction` rejects | Button shakes once, switches to a "Retry" label and destructive color; auto-returns to idle after 1.4s |
+| Disabled | `disabled` prop | Dimmed, non-interactive, no hover/press motion |
+
+Every transition animates only `transform`/`opacity` (no layout thrash), and
+`motion-safe:`/`motion-reduce:` variants ensure `prefers-reduced-motion`
+removes the glide/shake/spin/pop while keeping the color and label feedback
+intact.
+
+## Duration & Easing Notes
+
+- **Hover 150ms / press 100ms** — opposite easing curves (ease-out lift vs.
+  ease-in press) so they read as distinct gestures.
+- **Content cross-fade 200ms** (`cubic-bezier(0.4,0,0.2,1)`) — idle/loading
+  layers swap on two absolutely-positioned layers inside a fixed-width
+  button, so nothing reflows.
+- **Spinner 700ms linear, infinite** — deliberately not eased; a spinner has
+  no start/end to accelerate toward.
+- **Success check 320ms** (`cubic-bezier(0.34,1.56,0.64,1)`) — slight
+  overshoot so it reads as rewarding.
+- **Error shake 420ms ease-in-out** — short and sharp, doesn't delay the
+  "Retry" label being readable.
+- **Auto-return to idle: 1.4s hold.**
+
+The full write-up, plus live triggers for success and forced failure, is on
+the demo page itself at `/playground/motion-button`.
+
+### Example Usage
+
+```tsx
+import { SendButton } from "@/components/ui/lifecycle-button-presets";
+
+<SendButton
+  onAction={() => sendMessage({ text }).then(() => setInput(""))}
+  disabled={!input.trim()}
+/>
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -127,10 +204,16 @@ app/
     chat/
       route.ts
       tools.ts
+  playground/
+    motion-button/
+      page.tsx
 
 components/
   chat/
   tools/
+  ui/
+    async-action-button.tsx
+    lifecycle-button-presets.tsx
 
 lib/
 ```
@@ -173,6 +256,11 @@ The following hooks are enabled only while running `npm run dev`. They are ignor
 
 For the API query-parameter forms, use a REST client or temporarily configure the chat transport endpoint. The phrase forms work directly from the portfolio assistant.
 
+The motion button's success/failure states don't need a dev-only trigger —
+`/playground/motion-button` has always-on forced-success and forced-failure
+buttons, plus a random-outcome (20% failure) pair, so evaluators can see
+every state without special setup.
+
 ---
 
 ## Learning Goals
@@ -188,6 +276,7 @@ It demonstrates practical experience with:
 - Type-safe APIs with Zod
 - Production-oriented React architecture
 - Human-in-the-loop AI workflows
+- Intentional micro-interaction design (state-driven motion, reduced-motion support)
 
 ---
 
