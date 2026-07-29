@@ -6,8 +6,15 @@ export default function HomePage() {
       <h1 className="text-display text-primary">Home</h1>
 
       <p>
-        I build AI-assisted frontend applications. Try the AI assistant below to
-        ask about my projects, or explore my{" "}
+        I'm Priscila Santos, a Front-End AI Engineering Intern building
+        production React and Next.js applications with AI as a development
+        partner — not just for code, but for planning, testing, and
+        documentation too.
+      </p>
+
+      <p>
+        Ask my AI assistant about my projects and engineering approach, or
+        jump straight into my{" "}
         <Link href="/work">case studies</Link>.
       </p>
 
