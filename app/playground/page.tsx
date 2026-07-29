@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import Modal from "./components/ui/Modal";
 import Tabs from "./components/ui/Tabs";
@@ -90,6 +91,23 @@ export default function PlaygroundPage() {
             <li>Tailwind CSS</li>
           </ul>
         </Disclosure>
+      </section>
+
+      {/* Motion Button Demo */}
+      <section>
+        <h2 className="mb-4 text-xl font-semibold">
+          Motion &amp; State (FE-AA1)
+        </h2>
+        <p className="mb-4 text-sm text-gray-600">
+          A button that narrates its own lifecycle — idle, loading, success,
+          and error — with intentional durations and easings.
+        </p>
+        <Link
+          href="/playground/motion-button"
+          className="inline-flex items-center rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          View demo →
+        </Link>
       </section>
     </main>
   );
