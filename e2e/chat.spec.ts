@@ -8,7 +8,7 @@ test("visitor can reach the AI assistant and prepare a message from an example p
   await expect(page.getByRole("heading", { name: /home/i })).toBeVisible();
 
   await page.getByRole("link", { name: /try the ai assistant/i }).click();
-  await expect(page).toHaveURL(/\/ai$/);
+  await page.waitForURL(/\/ai$/);
 
   await expect(
     page.getByRole("heading", { name: /ask about my work/i })

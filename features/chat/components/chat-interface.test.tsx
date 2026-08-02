@@ -51,9 +51,8 @@ describe("ChatInterface", () => {
 
     render(<ChatInterface />);
 
-    expect(
-      screen.getByRole("status", { name: /preparing a response/i })
-    ).toBeInTheDocument();
+    const indicator = screen.getByRole("status");
+    expect(indicator).toHaveTextContent(/assistant is preparing a response/i);
   });
 
   it("hides the thinking indicator once assistant text is streaming in", () => {
