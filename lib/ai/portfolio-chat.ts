@@ -1,12 +1,11 @@
-import { anthropic } from "@ai-sdk/anthropic";
-
+import { google } from "@ai-sdk/google";
 /**
  * The Claude model used by the portfolio chat feature.
  *
  * Keeping this selection here lets route handlers focus on HTTP concerns and
  * gives the application one place to update the model later.
  */
-export const portfolioChatModel = anthropic("claude-sonnet-4-5");
+export const portfolioChatModel = google("gemini-3.5-flash-lite");
 
 // Keep portfolio facts as short, editable entries instead of duplicating them
 // throughout the prompt or route handlers.
