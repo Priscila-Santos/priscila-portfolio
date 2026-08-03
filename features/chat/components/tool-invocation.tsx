@@ -78,9 +78,9 @@ function LeadScoreSkeleton({ input }: { input: unknown }) {
         </div>
       </div>
       {isLeadInput(input) && (
-        <p className="border-t border-emerald-100 px-4 py-2 text-xs text-slate-600">
+        <div className="border-t border-emerald-100 px-4 py-2 text-xs text-slate-600">
           <LeadInputSummary input={input} />
-        </p>
+        </div>
       )}
     </section>
   );
