@@ -1,3 +1,6 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import { ToolInvocation } from "@/features/chat/components/tool-invocation";
 import type { PortfolioChatMessage } from "@/lib/ai/tools";
 import { cn } from "@/lib/utils";
@@ -35,7 +38,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     : "border bg-card text-card-foreground"
                 )}
               >
-                <p className="whitespace-pre-wrap">{part.text}</p>
+                {isUser ? (
+                  <p className="whitespace-pre-wrap">{part.text}</p>
+                ) : (
+                  <div className="prose prose-sm max-w-none prose-p:my-2 prose-p:text-card-foreground prose-ul:my-2 prose-li:text-card-foreground prose-ol:my-2 prose-strong:text-card-foreground prose-headings:text-card-foreground dark:prose-invert">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {part.text}
+                    </ReactMarkdown>
+                  </div>
+                )}
               </div>
             );
           }
