@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 /**
- * The Claude model used by the portfolio chat feature.
+ * The Gemini model used by the portfolio chat feature.
  *
  * Keeping this selection here lets route handlers focus on HTTP concerns and
  * gives the application one place to update the model later.
