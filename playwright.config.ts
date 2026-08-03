@@ -5,6 +5,10 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
+  timeout: 30_000,
+  expect: {
+    timeout: 15_000, // dá tempo do Next.js compilar a rota /ai na primeira visita
+  },
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -13,7 +17,7 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 520_000,
+    timeout: 120_000,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
