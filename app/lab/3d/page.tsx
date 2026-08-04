@@ -1,25 +1,6 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 
-// ssr: false is required here — @react-three/fiber touches WebGL/canvas
-// APIs that don't exist during server rendering. Lazy-loading also keeps
-// three.js, @react-three/fiber, @react-three/drei, and leva (~600KB+
-// combined, ungzipped) out of every other page's bundle; only /lab/3d
-// pays for them, and only after this component actually mounts.
-const ModelViewer = dynamic(
-  () => import("@/features/three/components/model-viewer").then((mod) => mod.ModelViewer),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        aria-busy="true"
-        className="flex h-[28rem] items-center justify-center rounded-xl border bg-card text-sm text-muted-foreground sm:h-[32rem]"
-      >
-        Loading the 3D viewer…
-      </div>
-    ),
-  }
-);
+import { ThreeDLabClient } from "@/app/lab/3d/three-d-lab-client";
 
 export const metadata: Metadata = {
   title: "3D Model Viewer | Portfolio",
@@ -42,7 +23,7 @@ export default function ThreeDLabPage() {
           </p>
         </header>
 
-        <ModelViewer />
+        <ThreeDLabClient />
 
         <p className="text-xs text-muted-foreground">
           Interactive scene loads on demand and respects your device&apos;s reduced-motion

@@ -191,7 +191,14 @@ function ActiveViewer() {
   );
 }
 
-useGLTF.preload(DEFAULT_MODEL_URL);
+// Defense in depth: this module should only ever load in the browser
+// (via the "use client" boundary in app/lab/3d/three-d-lab-client.tsx),
+// but guarding the preload call means an accidental future server-side
+// import can't crash a request the way an unguarded call did before —
+// see the note at the top of three-d-lab-client.tsx for the full story.
+if (typeof window !== "undefined") {
+  useGLTF.preload(DEFAULT_MODEL_URL);
+}
 
 /**
  * Public entry point. Handles progressive enhancement: starts on a static,
