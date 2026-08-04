@@ -16,7 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body>
         <header className="border-b border-neutral-200">
           <nav aria-label="Main navigation" className="px-page-x py-page-y">
-            <ul className="flex gap-6 text-nav">
+            <ul className="flex flex-wrap gap-6 text-nav">
               <li>
                 <Link className="text-primary hover:text-accent" href="/">Home</Link>
               </li>
@@ -31,6 +31,11 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               </li>
               <li>
                 <Link className="text-primary hover:text-accent" href="/playground">Playground</Link>
+              </li>
+              <li>
+                {/* FE-AA2: 3D model viewer, kept as its own route so its heavy
+                    Three.js bundle never loads on any other page. */}
+                <Link className="text-primary hover:text-accent" href="/lab/3d">3D Lab</Link>
               </li>
             </ul>
           </nav>
