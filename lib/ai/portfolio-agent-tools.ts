@@ -1,5 +1,6 @@
-import { tool } from "ai";
+import { tool, type InferUITools, type UIMessage } from "ai";
 import { z } from "zod";
+import { portfolioTools } from "./tools";
 import {
   listPortfolioSources,
   readPortfolioSource,
@@ -97,6 +98,8 @@ function checkAnswerGrounding(
 }
 
 export const portfolioAgentTools = {
+  ...portfolioTools,
+
   listProjects: tool({
     description:
       "List all portfolio projects and bio pages available as grounding sources (slug, title, topic, stack).",
@@ -161,3 +164,9 @@ export const portfolioAgentTools = {
     },
   }),
 };
+
+export type PortfolioAgentMessage = UIMessage<
+  unknown,
+  Record<string, never>,
+  InferUITools<typeof portfolioAgentTools>
+>;

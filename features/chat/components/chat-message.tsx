@@ -1,17 +1,31 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { ToolInvocation } from "@/features/chat/components/tool-invocation";
-import type { PortfolioChatMessage } from "@/lib/ai/tools";
+import {
+  PortfolioToolInvocation,
+  ToolInvocation,
+} from "@/features/chat/components/tool-invocation";
+import type { PortfolioAgentMessage } from "@/lib/ai/portfolio-agent-tools";
 import { cn } from "@/lib/utils";
 
 type ChatMessageProps = {
-  message: PortfolioChatMessage;
+  message: PortfolioAgentMessage;
 };
+
+function isGroundingToolInProgress(part: PortfolioAgentMessage["parts"][number]) {
+  return (
+    (part.type === "tool-listProjects" ||
+      part.type === "tool-readProject" ||
+      part.type === "tool-checkGrounding") &&
+    (part.state === "input-streaming" || part.state === "input-available")
+  );
+}
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const hasVisibleContent = message.parts.some(
-    (part) => part.type === "text" || part.type === "tool-scoreLead"
+    (part) => part.type === "text" ||
+      part.type === "tool-scoreLead" ||
+      isGroundingToolInProgress(part)
   );
 
   if (!hasVisibleContent) {
@@ -58,6 +72,39 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 state={part.state}
                 input={part.input}
                 output={part.output}
+              />
+            );
+          }
+
+          if (part.type === "tool-listProjects") {
+            return (
+              <PortfolioToolInvocation
+                key={part.toolCallId}
+                toolName="listProjects"
+                state={part.state}
+                input={part.input}
+              />
+            );
+          }
+
+          if (part.type === "tool-readProject") {
+            return (
+              <PortfolioToolInvocation
+                key={part.toolCallId}
+                toolName="readProject"
+                state={part.state}
+                input={part.input}
+              />
+            );
+          }
+
+          if (part.type === "tool-checkGrounding") {
+            return (
+              <PortfolioToolInvocation
+                key={part.toolCallId}
+                toolName="checkGrounding"
+                state={part.state}
+                input={part.input}
               />
             );
           }

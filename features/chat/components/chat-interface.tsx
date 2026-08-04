@@ -7,7 +7,7 @@ import { MessageCircleMore, RefreshCw, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/features/chat/components/chat-message";
-import type { PortfolioChatMessage } from "@/lib/ai/tools";
+import type { PortfolioAgentMessage } from "@/lib/ai/portfolio-agent-tools";
 import { cn } from "@/lib/utils";
 
 export function ChatInterface() {
@@ -23,12 +23,12 @@ export function ChatInterface() {
 
   // useMemo creates the transport once, preventing a new API client on every render.
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat" }),
+    () => new DefaultChatTransport({ api: "/api/portfolio-agent" }),
     []
   );
 
   // useChat owns message history and updates it as the API stream delivers chunks.
-  const { messages, sendMessage, status, stop, error, clearError } = useChat<PortfolioChatMessage>({ transport });
+  const { messages, sendMessage, status, stop, error, clearError } = useChat<PortfolioAgentMessage>({ transport });
   const isGenerating = status === "submitted" || status === "streaming";
   const latestMessage = messages.at(-1);
   const hasAssistantText =
