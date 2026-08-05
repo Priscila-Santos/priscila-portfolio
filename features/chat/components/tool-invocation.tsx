@@ -9,6 +9,8 @@ type ScoreLeadToolState =
   | "approval-responded"
   | "output-denied";
 
+type PortfolioToolName = "listProjects" | "readProject" | "checkGrounding";
+
 type ToolInvocationProps = {
   state: ScoreLeadToolState;
   input: unknown;
@@ -19,6 +21,27 @@ type LeadInput = {
   company: string;
   employees: number;
 };
+
+type ProjectInput = {
+  slug: string;
+};
+
+function isProjectInput(value: unknown): value is ProjectInput {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "slug" in value &&
+    typeof value.slug === "string"
+  );
+}
+
+function formatProjectName(slug: string): string {
+  return slug
+    .replace(/^project-/, "")
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 function isLeadInput(value: unknown): value is LeadInput {
   return (
@@ -123,5 +146,36 @@ export function ToolInvocation({ state, input, output }: ToolInvocationProps) {
     <section className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
       Lead scoring is awaiting confirmation.
     </section>
+  );
+}
+
+/** Shows lightweight progress only while portfolio grounding tools are running. */
+export function PortfolioToolInvocation({
+  toolName,
+  state,
+  input,
+}: {
+  toolName: PortfolioToolName;
+  state: ScoreLeadToolState;
+  input: unknown;
+}) {
+  if (state !== "input-streaming" && state !== "input-available") {
+    return null;
+  }
+
+  const label =
+    toolName === "listProjects"
+      ? "Finding relevant projects…"
+      : toolName === "readProject"
+        ? `Reading project: ${isProjectInput(input) ? formatProjectName(input.slug) : "…"}`
+        : "Checking answer grounding…";
+
+  return (
+    <p
+      aria-live="polite"
+      className="mt-3 inline-flex rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground"
+    >
+      {label}
+    </p>
   );
 }
