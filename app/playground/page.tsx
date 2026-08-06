@@ -16,6 +16,14 @@ export default function PlaygroundPage() {
         Accessible Components Playground
       </h1>
 
+      <p className="mb-8 max-w-2xl text-sm text-muted-foreground">
+        Hand-built accessible components (focus traps, ARIA, keyboard nav),
+        compared against their shadcn/ui equivalents — evidence that I
+        understand what a headless UI library is actually doing, not just
+        how to import one. Full comparison notes in{" "}
+        <code className="rounded bg-muted px-1">app/playground/NOTES.md</code>.
+      </p>
+
       {/* Modal Demo */}
       <section>
         <h2 className="mb-4 text-xl font-semibold">

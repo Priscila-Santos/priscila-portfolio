@@ -33,7 +33,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
     );
   } catch {
     return false;
@@ -161,7 +161,9 @@ function ActiveViewer() {
 
   return (
     <div className="relative h-[28rem] overflow-hidden rounded-xl border bg-card sm:h-[32rem]">
-      <Leva collapsed titleBar={{ title: "Configurator" }} />
+      <div className="absolute right-3 top-3 z-20 w-56">
+        <Leva collapsed titleBar={{ title: "Configurator" }} />
+      </div>
       <DropZone onFile={handleFile}>
         <Canvas
           shadows

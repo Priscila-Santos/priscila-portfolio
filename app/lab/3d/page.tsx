@@ -24,13 +24,6 @@ export default function ThreeDLabPage() {
         </header>
 
         <ThreeDLabClient />
-
-        <p className="text-xs text-muted-foreground">
-          Interactive scene loads on demand and respects your device&apos;s reduced-motion
-          setting. See{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">THREE_D_EXPERIENCE_README.md</code>{" "}
-          for the performance notes behind these choices.
-        </p>
       </div>
     </section>
   );

@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+// TypeScript may complain about side-effect CSS imports when no ambient
+// declaration is present. Suppress the error for this global stylesheet.
+// @ts-ignore
 import "./globals.css";
 import { GeistSans } from "geist/font/sans";
 import { cn } from "@/lib/utils";
+import { MobileNav } from "@/components/mobile-nav";
 
 export const metadata: Metadata = {
   title: "Portfolio",
@@ -16,7 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body>
         <header className="border-b border-neutral-200">
           <nav aria-label="Main navigation" className="px-page-x py-page-y">
-            <ul className="flex flex-wrap gap-6 text-nav">
+            <ul className="hidden flex-wrap gap-6 text-nav sm:flex">
               <li>
                 <Link className="text-primary hover:text-accent" href="/">Home</Link>
               </li>
@@ -38,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <Link className="text-primary hover:text-accent" href="/lab/3d">3D Lab</Link>
               </li>
             </ul>
+            <MobileNav />
           </nav>
         </header>
         <main>{children}</main>
