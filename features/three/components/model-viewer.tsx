@@ -212,17 +212,10 @@ export function ModelViewer() {
   const lowPower = useLowPowerContext();
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const [enabled, setEnabled] = useState(false);
-  const [autoDecided, setAutoDecided] = useState(false);
 
   useEffect(() => {
     setWebglSupported(hasWebGL());
   }, []);
-
-  useEffect(() => {
-    if (autoDecided || webglSupported === null) return;
-    setEnabled(webglSupported && !prefersReducedMotion && !lowPower);
-    setAutoDecided(true);
-  }, [autoDecided, webglSupported, prefersReducedMotion, lowPower]);
 
   if (webglSupported === false) {
     return <SceneFallback reason="webgl-unsupported" />;

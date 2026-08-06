@@ -18,7 +18,7 @@ export default function ThreeDLabPage() {
           <p className="max-w-2xl text-muted-foreground">
             A staged WebGL scene with orbit controls, environment lighting, and a
             live configurator for color, metalness, roughness, and wireframe.
-            Drop your own <code className="rounded bg-muted px-1 py-0.5 text-xs">.glb</code>{" "}
+            Drop your own <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">.glb</code>{" "}
             file onto the canvas, or explore the default sample model.
           </p>
         </header>
@@ -28,7 +28,7 @@ export default function ThreeDLabPage() {
         <p className="text-xs text-muted-foreground">
           Interactive scene loads on demand and respects your device&apos;s reduced-motion
           setting. See{" "}
-          <code className="rounded bg-muted px-1 py-0.5">THREE_D_EXPERIENCE_README.md</code>{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs text-foreground">THREE_D_EXPERIENCE_README.md</code>{" "}
           for the performance notes behind these choices.
         </p>
       </div>
