@@ -41,7 +41,7 @@ export function SceneFallback({ reason, onEnable }: SceneFallbackProps) {
         <Box aria-hidden="true" className="size-7" />
       </div>
       <div className="space-y-1">
-        <h3 className="text-base font-semibold text-card-foreground">{title}</h3>
+        <h2 className="text-base font-semibold text-card-foreground">{title}</h2>
         <p className="max-w-sm text-sm text-muted-foreground">{body}</p>
       </div>
       {canEnable && (

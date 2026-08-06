@@ -9,7 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "rgb(var(--color-primary) / <alpha-value>)",
+        primary: {
+          DEFAULT: "rgb(var(--color-primary) / <alpha-value>)",
+          foreground: "#ffffff",
+        },
         accent: "rgb(var(--color-accent) / <alpha-value>)",
         neutral: {
           50: "rgb(var(--color-neutral-50) / <alpha-value>)",
