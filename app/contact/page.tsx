@@ -52,9 +52,7 @@ export default function ContactPage() {
         </dl>
 
         <p className="text-sm text-muted-foreground">
-          Currently a first-semester Information Systems student and Front-End
-          AI Engineering Intern at FlyRank AI — open to conversations about
-          frontend or AI-assisted engineering roles.
+          Information Systems student and Front-End AI Engineering Intern at FlyRank AI — open to conversations about frontend or AI-assisted engineering roles.
         </p>
       </div>
     </section>

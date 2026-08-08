@@ -2,6 +2,14 @@
 
 This guide explains the AI chat feature in Priscila Santos's portfolio. It is written for a junior frontend engineer who wants to understand both the React UI and the server-side streaming flow.
 
+> **Note on this revision:** an earlier draft of this doc described the
+> assistant as a simple prompt-stuffed chat calling Anthropic Claude at
+> `/api/chat`. The feature that actually shipped is a tool-using **agent**
+> (grounded in local markdown sources, with a self-check step) calling
+> **Google Gemini** at `/api/portfolio-agent`. This revision documents the
+> real, deployed implementation. See `week-five/ASSIGNMENT_COACH.md` and
+> `week-six/EXPLAIN_MY_CODE.md` for the full reasoning behind that design.
+
 ## 1. Architecture overview
 
 The feature is split into small layers, each with one responsibility:
@@ -10,40 +18,52 @@ The feature is split into small layers, each with one responsibility:
 Browser
   app/ai/page.tsx
     -> features/chat/components/chat-interface.tsx
-      -> POST /api/chat
-        -> app/api/chat/route.ts
-          -> lib/ai/portfolio-chat.ts
-            -> Anthropic Claude
+      -> POST /api/portfolio-agent
+        -> app/api/portfolio-agent/route.ts
+          -> lib/rate-limit.ts               (per-IP request cap, before any model call)
+          -> lib/ai/portfolio-agent.ts        (system prompt + decision loop)
+          -> lib/ai/portfolio-agent-tools.ts  (listProjects / readProject / checkGrounding / scoreLead)
+            -> lib/ai/portfolio-sources.ts    (reads content/portfolio/*.md)
+          -> Google Gemini (via @ai-sdk/google)
 ```
 
 - The **page** places the feature in the portfolio and supplies page metadata.
 - The **client chat component** collects input, renders messages, and consumes the stream.
-- The **API route** is the server boundary. It validates browser input and starts the model request.
-- The **AI configuration module** centralizes the model choice and system prompt.
-- **Anthropic Claude** generates the response. Its API key remains on the server.
+- The **API route** is the server boundary. It rate-limits and caps input *before* spending any model tokens, validates the request, and starts the model request.
+- The **rate limiter** rejects abusive traffic (HTTP 429) or oversized conversations (HTTP 413) before conversion or streaming ever starts.
+- The **agent module** owns the system prompt and the tool-driven decision loop: identify source → read source → draft → check grounding → revise once if needed → finalize.
+- **Google Gemini** generates the response and decides when to call a tool. Its API key remains on the server.
 
-This separation is useful because a visual change normally stays in the client component, while a model or prompt change stays in the AI module. The route does not need to know about button styling, and the browser never needs the API key.
+This separation is useful because a visual change normally stays in the client component, while a model, prompt, or tool change stays in the `lib/ai/` modules. The route does not need to know about button styling, and the browser never needs the API key.
 
 ## 2. Relevant folder structure
 
 ```text
 app/
-  ai/page.tsx                         # Route and metadata for /ai
-  api/chat/route.ts                   # Server POST endpoint
+  ai/page.tsx                             # Route and metadata for /ai
+  api/portfolio-agent/route.ts            # Server POST endpoint: rate limit -> input caps -> streamText
 
 features/
   chat/components/
-    chat-interface.tsx                # Interactive chat UI and scrolling logic
-    chat-message.tsx                  # One user or assistant message
+    chat-interface.tsx                    # Interactive chat UI and scrolling logic
+    chat-message.tsx                      # One user or assistant message, plus tool-call rendering
+    tool-invocation.tsx                   # Renders each tool's lifecycle state (loading/result/error)
 
 lib/
-  ai/portfolio-chat.ts                # Claude model and system prompt
-  utils.ts                            # Shared class-name utility
+  ai/
+    portfolio-chat.ts                     # Gemini model selection
+    portfolio-agent.ts                    # System prompt + grounding decision loop
+    portfolio-agent-tools.ts              # listProjects / readProject / checkGrounding / scoreLead
+    portfolio-sources.ts                  # Reads content/portfolio/*.md
+  rate-limit.ts                           # Per-IP request cap
+  utils.ts                                # Shared class-name utility
+
+content/portfolio/*.md                    # Grounding source: bio + project write-ups
 
 components/
-  ui/button.tsx                       # Reusable accessible button primitive
+  ui/button.tsx                           # Reusable accessible button primitive
 
-.env.example                          # Documents required local environment variable
+.env.example                              # Documents required local environment variable
 ```
 
 ## 3. Request lifecycle
@@ -51,22 +71,24 @@ components/
 1. A visitor enters text in the textarea on `/ai`.
 2. `handleSubmit` prevents the browser's normal form navigation.
 3. The component trims the text and rejects an empty submission or a second submission while a response is generating.
-4. `sendMessage({ text })`, supplied by AI SDK's `useChat`, adds the user message to client state and sends the conversation to `/api/chat` through `DefaultChatTransport`.
-5. The route reads JSON and checks that a `messages` field exists.
-6. `validateUIMessages` checks the untrusted UI-message data at runtime. TypeScript alone cannot validate data received over HTTP.
+4. `sendMessage({ text })`, supplied by AI SDK's `useChat`, adds the user message to client state and sends the conversation to `/api/portfolio-agent` through `DefaultChatTransport`.
+5. The route checks the caller's rate limit (`lib/rate-limit.ts`) before doing anything else. Over the limit → HTTP `429` with a `Retry-After` header, and the model is never called.
+6. The route reads the JSON body and checks the conversation isn't larger than the input caps (40 messages, 4,000 characters per message). Too large → HTTP `413`.
 7. `convertToModelMessages` converts the UI-friendly message structure into model messages suitable for the provider.
-8. `streamText` starts the Claude request using the configured model, system prompt, and message history.
-9. `toUIMessageStreamResponse()` turns the model stream into the AI SDK protocol understood by `useChat`.
-10. The browser receives chunks and React rerenders as `messages` changes.
+8. `streamText` starts the Gemini request with the system prompt, message history, and the four portfolio-agent tools, capped at 5 steps (`stopWhen: stepCountIs(5)`) so the tool-calling loop can't run indefinitely.
+9. If Gemini decides it needs a fact, it calls `listProjects` or `readProject` mid-stream; the client renders a lightweight progress label for each (see §7, `tool-invocation.tsx`).
+10. Before finalizing, the agent may call `checkGrounding` (at most twice) to verify its draft against the source content it read.
+11. `toUIMessageStreamResponse()` turns the model stream — including tool calls and their results — into the AI SDK protocol understood by `useChat`.
+12. The browser receives chunks and React rerenders as `messages` changes.
 
 ## 4. Streaming lifecycle
 
-Streaming means the browser receives partial answer data before Claude has finished the whole answer.
+Streaming means the browser receives partial answer data before Gemini has finished the whole answer.
 
 1. After submission, `useChat` changes `status` to `"submitted"`.
 2. The UI displays the thinking indicator because no assistant text exists yet.
 3. When the server sends the first text chunk, `useChat` adds or updates the assistant message and `status` becomes `"streaming"`.
-4. More chunks update that same assistant message. React rerenders its text incrementally.
+4. More chunks update that same assistant message. React rerenders its text incrementally. Tool calls arrive as their own message parts and render through `tool-invocation.tsx` rather than as plain text.
 5. The scroll effect follows those updates only when the visitor is near the bottom of the conversation.
 6. When the stream ends, `status` returns to its non-generating state and the Stop button becomes Send again.
 7. If the visitor presses Stop, AI SDK aborts the active client request. Any text already received remains visible.
@@ -78,27 +100,31 @@ The browser does not wait for a complete JSON response. Instead, the AI SDK tran
 The project uses the Vercel AI SDK packages below:
 
 - `@ai-sdk/react` provides `useChat`, a React hook that owns chat state and streaming updates.
-- `ai` provides `DefaultChatTransport`, request/message helpers, `streamText`, and the UI streaming response helper.
-- `@ai-sdk/anthropic` provides the `anthropic()` model factory.
+- `ai` provides `DefaultChatTransport`, request/message helpers, `streamText`, `stepCountIs`, and the UI streaming response helper.
+- `@ai-sdk/google` provides the `google()` model factory used to call Gemini.
 
 `useChat` is intentionally used instead of manually managing a `fetch` call, a `ReadableStream`, message merging, loading state, and abort controllers. It provides those common chat responsibilities while the feature retains control over rendering and design.
 
-## 6. Claude streaming overview
+## 6. Model and agent overview
 
-`lib/ai/portfolio-chat.ts` creates the configured Claude model with:
+`lib/ai/portfolio-chat.ts` creates the configured Gemini model with:
 
 ```ts
-anthropic("claude-sonnet-4-5")
+google("gemini-3.5-flash-lite")
 ```
 
-The route passes that model to `streamText`. AI SDK then opens a server-to-provider request and exposes generated text as a readable stream. The route returns that stream immediately, allowing the client to render text as it arrives.
+`lib/ai/portfolio-agent.ts` supplies the system prompt and decision loop, and `lib/ai/portfolio-agent-tools.ts` supplies four tools:
 
-Claude receives two kinds of context:
+| Tool | Purpose |
+|---|---|
+| `listProjects` | Lists available portfolio/bio sources when the visitor doesn't name one directly |
+| `readProject` | Reads one source's full markdown content by slug |
+| `checkGrounding` | Deterministic word-overlap check of a draft answer against the source it was read from |
+| `scoreLead` | Computes a deterministic lead score from a company name and employee count |
 
-- The **system prompt**, which establishes the portfolio assistant's role, factual boundaries, and tone.
-- The **conversation messages**, which contain the visitor's current and previous questions.
+The route passes the model and these tools to `streamText`, capped at 5 steps total. Gemini decides on its own whether it needs to call a tool, and if so, which one — this is why the feature is described as an **agent** rather than a fixed workflow: nothing in the route hardcodes "always call `listProjects` first."
 
-The concise `portfolioContext` array keeps known portfolio facts in one editable location. It improves relevance while the instruction not to invent information prevents unsupported claims.
+Model provider was switched from Anthropic to Google Gemini specifically because the assignment's "completely free construction platform" constraint rules out a paid Anthropic key — see `week-five/BUILD_LOG.md` (Session 2) for the full reasoning.
 
 ## 7. Component guide
 
@@ -111,7 +137,7 @@ This is a Server Component by default. It defines metadata and renders the clien
 This is the main interactive component and begins with `"use client"`. It:
 
 - owns textarea and scroll-following state;
-- initializes the AI SDK transport;
+- initializes the AI SDK transport, pointed at `/api/portfolio-agent`;
 - sends messages and renders streamed message history;
 - shows thinking, error, Send, and Stop states;
 - implements auto-scroll and Jump to latest;
@@ -119,15 +145,27 @@ This is the main interactive component and begins with `"use client"`. It:
 
 ### `features/chat/components/chat-message.tsx`
 
-This presentational component receives one AI SDK `UIMessage`. It extracts its text parts, returns nothing for a message with no visible text, and visually distinguishes user and assistant messages. Keeping this separate prevents the parent component from becoming harder to read.
+This presentational component receives one AI SDK `UIMessage`. It extracts text parts and renders known tool-call parts (`scoreLead`, `listProjects`, `readProject`, `checkGrounding`) through `tool-invocation.tsx`; it returns nothing for a message with no visible content. Keeping this separate prevents the parent component from becoming harder to read.
 
-### `app/api/chat/route.ts`
+### `features/chat/components/tool-invocation.tsx`
 
-This App Router route handles `POST /api/chat`. Route handlers run on the server, so they are the correct place to contact Anthropic. It validates input, converts messages, invokes `streamText`, and returns the stream.
+Renders each tool's lifecycle (`input-streaming` / `input-available` / `output-available` / `output-error`) as a small, human-readable UI element instead of raw JSON — a busy skeleton for `scoreLead` in progress, a card for its result, and a lightweight "Reading project: …" style label for the grounding tools while they run.
+
+### `app/api/portfolio-agent/route.ts`
+
+This App Router route handles `POST /api/portfolio-agent`. Route handlers run on the server, so they are the correct place to contact Gemini. In order, it: checks the rate limit, checks the input-size caps, converts messages, invokes `streamText` with the agent's tools, and returns the stream. It also sets `export const maxDuration = 30;` so a slow tool call or model response can't hang a request indefinitely.
 
 ### `lib/ai/portfolio-chat.ts`
 
-This module is the single configuration point for the Claude model, portfolio facts, and system prompt. Centralizing them avoids repeating provider configuration across route handlers.
+This module is the single configuration point for the Gemini model. Centralizing it avoids repeating provider configuration across route handlers.
+
+### `lib/ai/portfolio-agent.ts` and `lib/ai/portfolio-agent-tools.ts`
+
+These own, respectively, the system prompt/decision loop and the tool implementations (including the `checkGrounding` word-overlap heuristic). Splitting them keeps the "how the agent should behave" text separate from "what each tool actually does."
+
+### `lib/rate-limit.ts`
+
+An in-memory, per-IP sliding-window limiter (see §9 below) used only by the route — it has no UI counterpart, since a blocked request never reaches the model or the chat UI's normal error path.
 
 ## 8. Hooks explained
 
@@ -155,7 +193,7 @@ The auto-scroll effect runs after React paints changed messages or thinking stat
 
 `useChat` owns the chat protocol state:
 
-- `messages`: UI message history, including incremental assistant text.
+- `messages`: UI message history, including incremental assistant text and tool-call parts.
 - `sendMessage`: sends a new user message through the configured transport.
 - `status`: request lifecycle state, used for thinking and Stop UI.
 - `stop`: aborts the active request.
@@ -169,7 +207,7 @@ The feature does not need a global store because all state belongs to one screen
 |---|---|---|
 | `input` | `ChatInterface` | Controlled textarea value |
 | `shouldAutoScroll` | `ChatInterface` | Whether incoming chunks should move the viewport |
-| `messages` | `useChat` | Conversation history and streamed output |
+| `messages` | `useChat` | Conversation history, streamed output, and tool-call parts |
 | `status` | `useChat` | Submitted/streaming/ready UI states |
 | `error` | `useChat` | Failed request feedback |
 
@@ -213,15 +251,15 @@ This gives the visitor control. Automatic updates are convenient when following 
 
 `isGenerating` is true while AI SDK status is `"submitted"` or `"streaming"`.
 
-The component additionally checks whether the latest assistant message already contains text. The thinking indicator is shown only while a request is generating **and** no assistant text has appeared. This prevents flicker when the status changes from submitted to streaming: the indicator stays visible until the first useful token replaces it.
+The component additionally checks whether the latest assistant message already contains text. The thinking indicator is shown only while a request is generating **and** no assistant text has appeared. This prevents flicker when the status changes from submitted to streaming: the indicator stays visible until the first useful token replaces it. Note that a tool call in progress (e.g. `readProject` running) also counts as "generating" without visible text yet, so the visitor sees the tool's own progress label instead of a blank gap.
 
-The dots are decorative (`aria-hidden="true"`). The meaningful text uses `role="status"` while it is visible, so assistive technology can announce “Thinking…” without interruption.
+The dots are decorative (`aria-hidden="true"`). The meaningful text uses `role="status"` while it is visible, so assistive technology can announce "Thinking…" without interruption.
 
 ## 13. Stop button
 
 While a response is generating, the Send button is replaced with **Stop**. It calls `stop` from `useChat`.
 
-Stopping aborts the active browser request; it does not delete text already received. This is important when a response is too long, off-topic, or no longer needed. The button uses `type="button"` so it does not accidentally submit the form, and it has the specific accessible label “Stop generating response.”
+Stopping aborts the active browser request; it does not delete text already received. This is important when a response is too long, off-topic, or no longer needed. The button uses `type="button"` so it does not accidentally submit the form, and it has the specific accessible label "Stop generating response."
 
 ## 14. Accessibility decisions
 
@@ -242,25 +280,25 @@ Live-region behavior can differ between assistive technology and browser combina
 The required variable is:
 
 ```env
-ANTHROPIC_API_KEY=your_anthropic_api_key
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
 ```
 
 For local development:
 
 1. Copy `.env.example` to `.env.local`.
-2. Add the real key to `.env.local`.
+2. Add the real key (from Google AI Studio's free tier) to `.env.local`.
 3. Restart the Next.js development server after changing environment variables.
 
-`.env.local` is ignored by Git and must never be committed. Do not prefix this variable with `NEXT_PUBLIC_`: that prefix makes variables available to browser code. The Anthropic SDK reads the key only when called from the server-side route through the AI configuration module.
+`.env.local` is ignored by Git and must never be committed. Do not prefix this variable with `NEXT_PUBLIC_`: that prefix makes variables available to browser code. The Google Generative AI SDK reads the key only when called from the server-side route through `lib/ai/portfolio-chat.ts`.
 
 ## 16. Deploying to Vercel
 
 1. Push the repository to the connected Git provider.
 2. Import the repository into Vercel.
-3. In **Project Settings → Environment Variables**, add `ANTHROPIC_API_KEY`.
+3. In **Project Settings → Environment Variables**, add `GOOGLE_GENERATIVE_AI_API_KEY`.
 4. Select the environments that need it, typically Production and Preview. Add Development if using Vercel's cloud development environment.
 5. Deploy or redeploy after saving the variable.
-6. Open `/ai` in the deployed site and complete a real streaming test.
+6. Open `/ai` in the deployed site and complete a real streaming test, including a question that should trigger a tool call (e.g. "tell me about the 3D viewer project").
 
 Never place the key in client-side source code, `NEXT_PUBLIC_*` variables, a committed `.env` file, or a browser request header.
 
@@ -269,10 +307,13 @@ Never place the key in client-side source code, `NEXT_PUBLIC_*` variables, a com
 ### Core and streaming
 
 - [ ] Send a normal question and confirm user and assistant messages render in order.
+- [ ] Ask something that should trigger `readProject`/`listProjects` and confirm a tool progress label appears before the final text.
 - [ ] Throttle the network in browser DevTools and confirm text appears incrementally.
 - [ ] Confirm Thinking appears immediately and disappears after the first assistant text.
 - [ ] Send a second question after completion.
-- [ ] Test a malformed request body against `/api/chat` and confirm it returns `400`.
+- [ ] Test a malformed request body against `/api/portfolio-agent` and confirm it returns `400`.
+- [ ] Send more than 40 messages (or one longer than 4,000 characters) and confirm the route returns `413` instead of calling the model.
+- [ ] Send more than 8 requests in a minute from the same client and confirm the route returns `429` with a `Retry-After` header.
 
 ### Stop and errors
 
@@ -305,17 +346,34 @@ Never place the key in client-side source code, `NEXT_PUBLIC_*` variables, a com
 
 ## 18. Common debugging scenarios
 
-### The route returns an Anthropic authentication error
+### `No HTTP methods exported in '.../route.ts'` and the request returns `405`
 
-Check that `ANTHROPIC_API_KEY` exists in `.env.local` locally or in Vercel environment settings after deployment. Restart the local server after changing it. Confirm it is not named `NEXT_PUBLIC_ANTHROPIC_API_KEY`.
+Next.js couldn't find a recognized method export (`GET`, `POST`, etc.) in the route file. In practice this almost always means:
+
+- The export isn't exactly `export async function POST(...)` — check capitalization (`Post`/`post` won't be picked up) and that `export` wasn't accidentally dropped while editing.
+- The file isn't at the exact path Next.js expects: `app/api/portfolio-agent/route.ts` (not `.tsx`, not nested one folder too deep or shallow).
+- A stale `.next` cache from before the file was last edited. Stop the dev server and clear it:
+  ```bash
+  rm -rf .next
+  npm run dev
+  ```
+  (PowerShell: `Remove-Item -Recurse -Force .next`)
+
+### The route returns a Google Generative AI authentication error
+
+Check that `GOOGLE_GENERATIVE_AI_API_KEY` exists in `.env.local` locally or in Vercel environment settings after deployment. Restart the local server after changing it. Confirm it is not named `NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY`.
 
 ### The browser receives no streamed text
 
-Use the Network tab to inspect the `POST /api/chat` response. Confirm the route returns `result.toUIMessageStreamResponse()` and the client transport targets `/api/chat`. Also check server logs for provider errors.
+Use the Network tab to inspect the `POST /api/portfolio-agent` response. Confirm the route returns `result.toUIMessageStreamResponse()` and the client transport targets `/api/portfolio-agent`. Also check server logs for provider errors.
 
 ### Thinking never disappears
 
 Check whether the route is returning an error before the first text chunk. Inspect the browser Network response and the server terminal. The client shows the generic error alert when `useChat` receives a failed request.
+
+### A message that should be answerable gets a 413
+
+Check its length against `MAX_MESSAGE_CHARS` (4,000) and the conversation length against `MAX_MESSAGES` (40) in `app/api/portfolio-agent/route.ts`. Adjust those constants if the caps are too tight for real usage — they exist to block abuse, not to constrain a normal visitor.
 
 ### Auto-scroll does not follow messages
 
@@ -342,13 +400,14 @@ This checks all TypeScript and TSX files without generating application output. 
 ## 19. Future improvements
 
 - Add a retry action for failed requests.
-- Add server-side rate limiting and abuse protection before broad public exposure.
+- Move rate limiting from the current in-memory, per-instance limiter (`lib/rate-limit.ts`) to a shared store (e.g. Upstash Redis) for real multi-instance guarantees at scale.
 - Persist conversations only if there is a clear privacy policy and user value.
 - Add analytics that records anonymous product events, not raw private chat content.
 - Render safe Markdown for richer assistant answers.
-- Add a maintained structured source of portfolio facts, such as project summaries, to improve grounding.
-- Add Playwright end-to-end tests with a mocked streaming route for repeatable scrolling and Stop-button checks.
+- Replace `checkGrounding`'s word-overlap heuristic with a semantic check (a second model call), which would also fix its known false-positive on markdown heading lines (see `week-five/BUILD_LOG.md`, Session 5).
+- Add a URL-fetch tool for external sources, scoped out of the MVP to keep grounding checks deterministic (see `week-five/BUILD_LOG.md`).
+- Add Playwright end-to-end tests with a mocked streaming route for repeatable scrolling, tool-call rendering, and Stop-button checks.
 - Consider reduced-motion preferences before adding any additional animation.
 - Add provider-error logging and observability that redacts user messages and secrets.
 
-The current implementation deliberately stays small: it demonstrates streaming AI interaction, user control over scrolling, accessible status feedback, and server-only secret handling without introducing unnecessary infrastructure.
+The current implementation deliberately stays small: it demonstrates a real tool-using, self-checking agent, streaming AI interaction, user control over scrolling, accessible status feedback, production-hygiene guards (rate limiting, input caps, a request timeout), and server-only secret handling — without introducing unnecessary infrastructure.
