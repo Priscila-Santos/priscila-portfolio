@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { MobileNav } from "@/components/mobile-nav";
 
 export const metadata: Metadata = {
-  title: "Portfolio",
-  description: "A portfolio site."
+  title: "Priscila Santos — Front-End AI Engineering",
+  description: "Front-End AI Engineering intern building interactive, accessible web experiences and AI-powered applications with React, TypeScript, and the Vercel AI SDK."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

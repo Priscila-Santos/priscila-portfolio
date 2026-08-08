@@ -3,6 +3,7 @@ import Link from "next/link";
 type CaseStudy = {
   title: string;
   stack: string;
+  aiRole: "AI-powered feature" | "AI-assisted development";
   problem: string;
   whatIDid: string[];
   outcome: string;
@@ -13,6 +14,7 @@ const caseStudies: CaseStudy[] = [
   {
     title: "This Portfolio",
     stack: "Next.js · TypeScript · Tailwind CSS · Vercel AI SDK",
+    aiRole: "AI-powered feature",
     problem:
       "Most developer portfolios list technologies and projects but don't give a hiring manager enough evidence to see how the developer thinks, makes decisions, or uses AI responsibly.",
     whatIDid: [
@@ -27,6 +29,7 @@ const caseStudies: CaseStudy[] = [
   {
     title: "3D Model Viewer",
     stack: "React Three Fiber · @react-three/drei · leva · Next.js",
+    aiRole: "AI-assisted development",
     problem:
       "FE-AA2 asked for a shipped, interactive 3D experience in the browser — not a demo screenshot — that loads responsibly and works on a phone, not just a desktop with a GPU to spare.",
     whatIDid: [
@@ -41,6 +44,7 @@ const caseStudies: CaseStudy[] = [
   {
     title: "Academic Planner App",
     stack: "React",
+    aiRole: "AI-assisted development",
     problem:
       "For my Algorithm Design I course, I needed a way to help students organize assignments, exams, and deadlines in one place. I also set myself a personal bar beyond the course requirement: a full React application balancing usability, organization, and maintainable code.",
     whatIDid: [
@@ -50,10 +54,15 @@ const caseStudies: CaseStudy[] = [
     ],
     outcome:
       "Demonstrates taking an idea from planning through implementation, balancing technical requirements with user experience, and using AI to accelerate development without replacing my own problem-solving.",
+    link: {
+      label: "View repository",
+      href: "https://github.com/Priscila-Santos/Academico-Planner-App",
+    },
   },
   {
     title: "AI Task Manager",
     stack: "React · Vite · GitHub Copilot",
+    aiRole: "AI-assisted development",
     problem:
       "A homework assignment built specifically to show how AI can be used as a development assistant throughout a project's lifecycle, not just as a code generator.",
     whatIDid: [
@@ -81,6 +90,14 @@ export default function WorkPage() {
             Case studies covering the Plan, Build, Test, and Document phases —
             what the problem was, what I did, and what came out of it.
           </p>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Two kinds of AI show up here: projects where AI is a{" "}
+            <strong>feature of the product</strong> (like this portfolio&apos;s AI
+            assistant, with tool calls and a grounding check), and projects where
+            AI is a <strong>development assistant</strong> I used to plan, review,
+            and test code I&apos;m still fully responsible for (Academic Planner,
+            AI Task Manager). I keep those distinct below.
+          </p>
         </header>
 
         <div className="space-y-8">
@@ -95,6 +112,9 @@ export default function WorkPage() {
                 </h2>
                 <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {study.stack}
+                </span>
+                <span className="rounded-full bg-blue-soft px-2 py-0.5 text-xs font-medium text-blue-accent">
+                  {study.aiRole}
                 </span>
               </div>
 
