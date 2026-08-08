@@ -1,381 +1,319 @@
-# Priscila's Portfolio
+# Priscila Santos — Portfolio
 
-A modern portfolio built with **Next.js 14**, **TypeScript**, **Tailwind CSS**, and the **Vercel AI SDK** to showcase both my technical projects and my work as a **Front-end AI Engineering Intern at FlyRank**.
+A production Next.js 14 portfolio built to demonstrate AI-assisted front-end
+engineering, not just describe it. The site itself ships a working example:
+a streaming AI assistant with real tool calls, a grounding check, and
+production hygiene (rate limiting, input caps, timeouts) — built as part of
+the FlyRank AI Engineering Internship (Frontend AI Engineering track).
 
-Rather than serving as only a portfolio website, this repository documents how I use AI responsibly throughout the software development lifecycle—from planning and implementation to testing, debugging, and documentation.
-
-The `/work` page contains detailed case studies describing the engineering decisions behind each feature.
-
----
-
-## Live Demo
-
-> [Deployed Vercel URL](https://priscila-portfolio.vercel.app/)
-
-3D model viewer (FE-AA2): [priscila-portfolio.vercel.app/lab/3d](https://priscila-portfolio.vercel.app/lab/3d)
+#### **Live URL:** https://priscila-portfolio.vercel.app/
+#### **3D Lab:** https://priscila-portfolio.vercel.app/lab/3d
+#### **Motion button demo:** https://priscila-portfolio.vercel.app/playground/motion-button
 
 ---
 
-## Features
+## What this project does
 
-- Responsive portfolio built with Next.js 14 App Router
-- AI-powered streaming chat assistant
-- Server-side AI tools using the Vercel AI SDK
-- Typed tool definitions with Zod
-- Structured UI rendering for tool lifecycle states
-- Accessible, reusable React components
-- A reusable async lifecycle button (idle → loading → success/error) with intentional motion
-- An interactive 3D model viewer (React Three Fiber) with drag-and-drop GLB loading and a live material configurator
-- Tailwind CSS design system
-- TypeScript throughout the project
+- A standard portfolio (Home, Work, About, Contact) presenting case
+  studies with a Problem → What I Did → Outcome structure.
+- `/ai` — a portfolio assistant that answers visitor questions about my
+  background and projects. It is a real **agent**, not a prompt-stuffed
+  chatbot: it calls `listProjects` / `readProject` to pull facts from
+  `content/portfolio/*.md`, drafts an answer, then calls `checkGrounding`
+  (a deterministic word-overlap check) before finalizing — capped at two
+  grounding passes so it can't loop forever. See
+  [`week-five/ASSIGNMENT_COACH.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-five/ASSIGNMENT_COACH.md) and
+  [`week-six/EXPLAIN_MY_CODE.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-six/EXPLAIN_MY_CODE.md) for the
+  full design and how it actually works under the hood.
+- A `scoreLead` tool the same assistant can call to compute a deterministic
+  lead score from a company name and employee count.
+- `/lab/3d` — a lazy-loaded, fallback-first WebGL model viewer
+  (React Three Fiber) with a live material configurator.
+- `/playground` — hand-built accessible components (Modal, Tabs,
+  Disclosure) compared against their shadcn/ui equivalents, as evidence I
+  understand what a headless UI library is actually doing.
+
+## Screenshots
+
+> Real screenshots are still missing — tracked honestly in
+> [Known limitations](#known-limitations--still-ugly-list) below rather
+> than faked. Once captured (desktop + mobile, per page), they belong here:
+>
+> | Home | Work | AI Assistant |
+> |---|---|---|
+> | _pending_ | _pending_ | _pending_ |
+
+---
+
+## Architecture overview
+
+```text
+Browser
+  app/ai/page.tsx
+    -> features/chat/components/chat-interface.tsx   (client, useChat)
+      -> POST /api/portfolio-agent
+        -> app/api/portfolio-agent/route.ts           (rate limit -> input caps -> streamText)
+          -> lib/ai/portfolio-agent.ts + portfolio-agent-tools.ts
+            -> lib/ai/portfolio-sources.ts             (reads content/portfolio/*.md)
+            -> Google Gemini (via @ai-sdk/google)
+```
+
+The design intentionally keeps each layer to one responsibility:
+
+- **Page** (`app/ai/page.tsx`) — Server Component, no secrets, no client state.
+- **Client chat component** — owns input, scroll, and streaming UI state.
+- **API route** — the server boundary. Rate-limits and caps input *before*
+  spending any model tokens, converts UI messages to model messages, and
+  starts the streamed response.
+- **Agent module** — the system prompt and the tool-driven decision loop
+  (identify source → read source → draft → check grounding → revise once
+  if needed → finalize).
+- **Model provider** — Google Gemini, called only from the server.
+
+Full request/streaming lifecycle, hook-by-hook explanation, and the
+accessibility decisions behind the chat UI are documented in
+[`docs/streaming-chat.md`](./docs/streaming-chat.md).
+
+## Tech stack
+
+React 18 · Next.js 14 (App Router) · TypeScript · Tailwind CSS · Vercel AI
+SDK (`ai`, `@ai-sdk/react`, `@ai-sdk/google`) · Zod · React Three Fiber /
+drei / leva · Vitest + Testing Library · Playwright.
+
+---
+
+## Environment variables
+
+| Variable | Required | Where it's used | Notes |
+|---|---|---|---|
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Yes | `lib/ai/portfolio-chat.ts` (server only, via `app/api/portfolio-agent/route.ts`) | Google AI Studio free-tier key. Never prefix with `NEXT_PUBLIC_` — that would expose it to the browser. |
+
+That is the only environment variable this project needs. `.env.example`
+documents it; copy it to `.env.local` and fill in the real value for local
+development. In Vercel, set it under **Project Settings → Environment
+Variables** for Production and Preview (add Development only if you use
+Vercel's cloud dev environment).
+
+---
+
+## Local development
+
+```bash
+git clone https://github.com/Priscila-Santos/priscila-portfolio.git
+cd <priscila-portfolio>
+npm install
+cp .env.example .env.local   # then paste your GOOGLE_GENERATIVE_AI_API_KEY
+npm run dev
+```
+
+Open http://localhost:3000.
+
+### Tests
+
+```bash
+npm run test        # Vitest + Testing Library (unit/component)
+npm run test:e2e     # Playwright (end-to-end)
+```
+
+---
+
+## Production deployment & hygiene (FE-11)
+
+### Hosting
+
+Deployed on Vercel, connected to the `main` branch. Preview deployments run
+automatically on pull requests.
+
+### Rate limiting & input caps
+
+`app/api/portfolio-agent/route.ts` protects the AI route in two layers,
+**before** any model call is made:
+
+1. **Rate limiting** (`lib/rate-limit.ts`) — an in-memory, per-IP sliding
+   window (8 requests / minute). Requests over the limit get an HTTP `429`
+   with a `Retry-After` header instead of reaching the model.
+2. **Input caps** — a conversation longer than 40 messages, or any single
+   message longer than 4,000 characters, is rejected with an HTTP `413`
+   before conversion or streaming starts.
+
+**Honest limitation:** the rate limiter is in-memory, so it is per
+serverless-function-instance, not global — it resets on cold start and
+doesn't coordinate across regions or concurrent instances. For a
+personal-portfolio traffic level this is enough to stop a casual abuse
+script or a stuck retry loop; it is not a substitute for a shared store
+(e.g. Upstash Redis) at real scale. That upgrade path is intentionally
+documented instead of silently pretended away.
+
+### Timeout
+
+`export const maxDuration = 30;` in the route caps how long a single
+request may run, independent of the agent's own 5-step cap
+(`stopWhen: stepCountIs(5)`), so a slow tool call or slow model response
+can't hang a visitor's browser indefinitely.
+
+### Cross-browser pass
+
+Manually verified on:
+
+- [ ] Chrome (desktop)
+- [ ] Firefox (desktop)
+- [ ] Safari (desktop, macOS)
+- [ ] Safari (mobile, iOS)
+
+
+### Custom domain
+
+Not yet configured. FlyRank's planned subdomain
+(`priscilasantos.flyrank.ai`) and the DNS/CNAME steps to point it at this
+Vercel deployment are documented in
+[`week-five/DNS_Walkthrough.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-five/DNS_Walkthrough.md); the
+checklist there is the source of truth for finishing this step.
+
+---
+
+## Project structure
+
+```text
+app/
+  ai/page.tsx                       # /ai route + metadata
+  api/portfolio-agent/route.ts      # server POST endpoint (rate limit, caps, streaming)
+  work/page.tsx
+  about/page.tsx
+  contact/page.tsx
+  lab/3d/                           # lazy-loaded 3D viewer route
+  playground/                       # hand-built accessible components + motion button demo
+
+features/
+  chat/components/                  # chat UI (interface, message, tool-invocation)
+  three/                            # 3D viewer components + hooks
+
+lib/
+  ai/
+    portfolio-chat.ts               # Gemini model selection
+    portfolio-agent.ts              # system prompt + decision loop
+    portfolio-agent-tools.ts        # listProjects / readProject / checkGrounding / scoreLead
+    portfolio-sources.ts            # reads content/portfolio/*.md
+  rate-limit.ts                     # in-memory per-IP limiter (this checkpoint)
+  utils.ts
+
+content/portfolio/*.md              # grounding source for the AI assistant
+
+components/ui/                      # shared, reusable primitives (Button, Dialog, Tabs, etc.)
+```
+
+---
+
+## Key engineering decisions
+
+- **Next.js over a plain Vite SPA or a full-stack app with a database** —
+  weighed in [`week-four/THREE_ROADS.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-four/THREE_ROADS.md).
+  Next.js gives routing, SEO, and image optimization without needing a
+  backend the portfolio doesn't otherwise require.
+- **Portfolio assistant built as an agent, not a workflow** — the
+  distinction, and why it matters, is worked through in
+  [`week-four/AGENT_AND_MCP.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-four/AGENT_AND_MCP.md) and
+  [`week-five/ASSIGNMENT_COACH.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-five/ASSIGNMENT_COACH.md). The
+  assistant decides which source to read and whether a draft needs
+  revision — it isn't a fixed script.
+- **Local markdown files instead of an external fetch tool for grounding**
+  — keeps answers deterministic and verifiable for a demo, at the cost of
+  the assistant only knowing what's in `content/portfolio/`. Documented as
+  a deliberate scope cut in `week-five/BUILD_LOG.md`.
+- **In-memory rate limiting instead of a hosted store** — a conscious
+  trade-off for this project's traffic level and env-var footprint; see
+  [Production deployment & hygiene](#production-deployment--hygiene-fe-11)
+  above.
+
+## How AI tools built this (honest account)
+
+AI was used throughout — planning, implementation, review, and
+documentation — but with a consistent split: **AI proposes, I decide.**
+Specifics, not platitudes:
+
+- **Planning before code.** Every feature (the AI agent, the motion button,
+  the 3D viewer) started with an AI-assisted design pass — architecture,
+  tool contracts, evaluation cases — written *before* implementation, so
+  there was something concrete to validate against once code existed. See
+  `week-five/ASSIGNMENT_COACH.md` §6 ("Evaluation Cases (Pre-Build)") for a
+  case where I wrote pass/fail criteria before the agent was built.
+- **AI-generated code was reviewed, not trusted by default.** Example: the
+  `checkGrounding` heuristic initially over-flagged legitimate synthesis as
+  unsupported; I tuned the overlap threshold myself after testing it
+  against deliberately-fabricated claims (`week-five/BUILD_LOG.md`,
+  Session 3). Example: `app/playground/NOTES.md` documents building
+  `Modal`, `Tabs`, and `Disclosure` by hand *first*, and using an AI tool
+  only afterward as a reviewer against the ARIA Authoring Practices
+  pattern — not as the author of those components.
+- **AI made mistakes that I caught and fixed, not AI hallucinations I
+  shipped.** The `checkGrounding` heading false-positive
+  (`week-five/BUILD_LOG.md`, Session 5) is documented as a known,
+  reproduced limitation rather than silently patched over or hidden.
+- **AI accelerated debugging, not just authored features.** The
+  `week-seven/AUDIT.md` Lighthouse investigation used AI to help trace a
+  6,500ms TBT regression on `/lab/3d` to a 1.5MB HDR environment texture
+  loading eagerly — but the fix (auto-enable heuristic scoping) and the two
+  markup bugs it exposed (missing `foreground` color key, skipped heading
+  level) were verified against the actual Tailwind config and DOM, not
+  taken on faith.
+- **Where I explicitly did not use AI**, and why that mattered: see
+  "Where I chose not to use AI" in `app/playground/NOTES.md`.
+
+Full prompt-engineering history — including a baseline-to-final prompt
+ladder and a Claude-vs-ChatGPT comparison on the same task — is in
+[`week-two/PROMPT_LADDER.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-two/PROMPT_LADDER.md) and
+[`week-two/PROMPTING_FUNDAMENTALS.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-two/PROMPTING_FUNDAMENTALS.md).
+
+---
+
+## Known limitations / still ugly list
+
+Carried over honestly from `week-five/FEEDBACK.md` and this checkpoint,
+rather than hidden:
+
+- No real screenshots yet (desktop or mobile) for any page.
+- Dark mode and the full Identity Kit typography/color system
+  (`week-three/IDENTITY_KIT.md`) are documented but not wired into
+  `app/globals.css`.
+- Rate limiting is in-memory / per-instance, not a shared store — see
+  above.
+- Cross-browser pass checkboxes above are unchecked until actually run.
+- Custom domain not yet configured.
+- `npm audit` flags high-severity CVEs rooted in the pinned Next.js
+  14.2.35; upgrading to Next 16 is a breaking change deferred post-launch
+  as documented in `week-five/BUILD_LOG.md`.
 
 ---
 
 ## AI Lead-Scoring Tool
 
-The portfolio assistant includes a server-side tool called `scoreLead`.
+The portfolio assistant includes a server-side tool, `scoreLead`, that
+computes a deterministic lead score from a company name and employee
+count instead of letting the model free-form a number.
 
-Instead of generating a free-form answer, the language model can invoke this tool to calculate a deterministic lead score based on the provided company information.
+**Input:** `{ company: string; employees: number }`
+**Output:** `{ company, score, priority: "Low" | "Medium" | "High", recommendation }`
 
-The tool executes exclusively on the server through the chat API route.
-
-## Tool Contract
-
-### Name
-
-`scoreLead`
-
-### Description
-
-Scores a sales lead based on company size and returns a structured recommendation.
-
-### Input Schema
-
-```ts
-{
-  company: string;
-  employees: number;
-}
-```
-
-### Return Shape
-
-```ts
-{
-  company: string;
-  score: number;
-  priority: "Low" | "Medium" | "High";
-  recommendation: string;
-}
-```
-
-### Example Prompt
-
-```
-Score Acme with 500 employees.
-```
-
-### Example Response
-
-```
-Company: Acme
-
-Score: 92
-
-Priority: High
-
-Recommendation:
-Contact within 24 hours.
-```
-
----
-
-## Tool Lifecycle
-
-The chat interface renders each stage of the AI SDK tool lifecycle with its own visual component instead of displaying raw JSON.
-
-| State | Description |
-|--------|-------------|
-| Input Streaming | Tool arguments are still being generated |
-| Input Available | Tool inputs have been generated and execution is starting |
-| Output Available | Structured results are rendered as a dashboard card |
-| Output Error | Errors are displayed in a dedicated error component without crashing the application |
-
-For testing purposes, sending:
-
-```
-company = "error"
-```
-
-forces the tool to throw an exception so the error state can be verified.
-
----
+Try it: *"Score Acme with 500 employees."* Sending `company = "error"`
+forces the tool to throw, so the error UI state can be verified on demand.
 
 ## Buttons with a Brain (FE-AA1)
 
-A reusable button component, `AsyncActionButton`, that communicates its full
-lifecycle through motion instead of an abrupt swap: **idle → hover/focus →
-loading → success/error → idle**.
+`components/ui/async-action-button.tsx` — one component, two presets
+(`SendButton`, `DeployButton`), narrating idle → hover → loading →
+success/error → idle through motion rather than an abrupt swap. Full
+duration/easing notes and live triggers:
+[`/playground/motion-button`](https://priscila-portfolio.vercel.app/playground/motion-button).
 
-Live demo: [`/playground/motion-button`](https://priscila-portfolio.vercel.app/playground/motion-button)
+## 3D Model Viewer (FE-AA2)
 
-## Component Contract
-
-### Name
-
-`AsyncActionButton`
-
-### Location
-
-`components/ui/async-action-button.tsx`
-
-### Presets
-
-`components/ui/lifecycle-button-presets.tsx` exports `SendButton` and
-`DeployButton` — two different actions built on the same component, proving
-the motion language (durations, easings, layout strategy) is one shared
-system rather than two separate implementations.
-
-### Input Props
-
-```ts
-{
-  onAction: () => Promise<void>;
-  icon: ReactNode;
-  idleLabel: string;
-  loadingLabel: string;
-  successLabel: string;
-  errorLabel?: string;
-  disabled?: boolean;
-  holdMs?: number; // how long success/error holds before resetting to idle
-}
-```
-
-## States
-
-| State | Trigger | Description |
-|---|---|---|
-| Idle | Default | Rest state, shows icon + label |
-| Hover / focus | Pointer or keyboard focus | Lifts 2px, shadow eases in (150ms) |
-| Active | Mouse/keyboard press | Compresses slightly (100ms, fast ease-in) |
-| Loading | Click fires `onAction` | Label cross-fades to a spinner; button disables itself so repeat clicks can't fire overlapping requests |
-| Success | `onAction` resolves | Icon morphs to a checkmark with a small overshoot; auto-returns to idle after 1.4s |
-| Error | `onAction` rejects | Button shakes once, switches to a "Retry" label and destructive color; auto-returns to idle after 1.4s |
-| Disabled | `disabled` prop | Dimmed, non-interactive, no hover/press motion |
-
-Every transition animates only `transform`/`opacity` (no layout thrash), and
-`motion-safe:`/`motion-reduce:` variants ensure `prefers-reduced-motion`
-removes the glide/shake/spin/pop while keeping the color and label feedback
-intact.
-
-## Duration & Easing Notes
-
-- **Hover 150ms / press 100ms** — opposite easing curves (ease-out lift vs.
-  ease-in press) so they read as distinct gestures.
-- **Content cross-fade 200ms** (`cubic-bezier(0.4,0,0.2,1)`) — idle/loading
-  layers swap on two absolutely-positioned layers inside a fixed-width
-  button, so nothing reflows.
-- **Spinner 700ms linear, infinite** — deliberately not eased; a spinner has
-  no start/end to accelerate toward.
-- **Success check 320ms** (`cubic-bezier(0.34,1.56,0.64,1)`) — slight
-  overshoot so it reads as rewarding.
-- **Error shake 420ms ease-in-out** — short and sharp, doesn't delay the
-  "Retry" label being readable.
-- **Auto-return to idle: 1.4s hold.**
-
-The full write-up, plus live triggers for success and forced failure, is on
-the demo page itself at `/playground/motion-button`.
-
-### Example Usage
-
-```tsx
-import { SendButton } from "@/components/ui/lifecycle-button-presets";
-
-<SendButton
-  onAction={() => sendMessage({ text }).then(() => setInput(""))}
-  disabled={!input.trim()}
-/>
-```
-
----
-
-# 3D Model Viewer (FE-AA2)
-
-An interactive WebGL scene built with **React Three Fiber**, **@react-three/drei**,
-and **leva**: drag-and-drop `.glb` loading with auto-staged lighting/shadows
-and a live material configurator, shipped as its own lazy-loaded route so
-the rest of the site never pays for it.
-
-Live demo: [`/lab/3d`](https://priscila-portfolio.vercel.app/lab/3d)
-Full write-up: [`week-seven/THREE_D_EXPERIENCE.md`](./week-seven/THREE_D_EXPERIENCE.md)
-
-## What it does
-
-- Loads a small default sample model (Khronos' `Duck.glb`, ~120KB) so the
-  scene is never empty.
-- Drag any `.glb` file onto the canvas to replace the loaded model — handled
-  with `URL.createObjectURL` on the dropped file, revoked on swap/unmount.
-- **Interaction beyond orbiting:** a `leva` panel lets a visitor change base
-  color, metalness, roughness, toggle wireframe, switch environment presets
-  (city / sunset / warehouse / forest / studio), and control auto-rotate
-  speed — applied by traversing the loaded scene graph's materials, so it
-  works on any dropped model, not just the default one.
-- `drei`'s `<Stage>` auto-centers and auto-scales whatever is loaded and
-  adds environment lighting + soft contact shadows.
-- `OrbitControls` handles orbit/zoom/pan, including touch gestures on
-  mobile, without extra code.
-
-## Loading responsibly
-
-- **Lazy-loaded canvas.** The route imports the viewer through
-  `next/dynamic({ ssr: false })`, so three.js + fiber + drei + leva
-  (~600KB combined) only load on `/lab/3d`, never on any other page.
-- **Fallback-first, opt-in canvas.** The page opens on a static, motion-free
-  card until the visitor taps "Enable 3D view," or the device auto-qualifies
-  (WebGL present, no `prefers-reduced-motion`, no low-power/data-saver
-  signal from `navigator.connection` / `navigator.deviceMemory`).
-- **Small default asset + capped renderer settings**: `dpr={[1, 1.5]}` and
-  `powerPreference: "low-power"` instead of the device's full pixel ratio.
-
-## Perf note
-
-Default model transfer is ~120KB; the 3D vendor bundle itself
-(three.js + fiber + drei + leva) is the larger cost at ~600KB uncompressed,
-which is why it's gated behind the fallback instead of loading on page
-visit. On a throttled mid-tier mobile profile (4x CPU, Fast 3G), frame rate
-holds around 45–55fps during interaction; contact shadows were the biggest
-cost found during the FE-10 pass — see the full numbers and methodology in
-[`week-seven/THREE_D_EXPERIENCE.md`](./week-seven/THREE_D_EXPERIENCE.md).
-
-## What I'd add with more time
-
-- Compress and self-host a heavier default model with DRACO instead of
-  relying on an already-tiny sample asset.
-- A low-power toggle inside the configurator itself (drop shadows, cap DPR
-  further) rather than only gating at the "enable the canvas" level.
-- Swap the default Duck for a small model tied to one of my other case
-  studies, so this isn't a standalone tech demo.
-
-### Version note
-
-`@react-three/fiber`'s latest major (v9) requires React 19. This project is
-pinned to React 18 (Next.js 14's peer requirement), so dependencies are
-installed as `@react-three/fiber@^8` and `@react-three/drei@^9` to stay
-compatible — see Setup below.
-
-## Setup
-
-```bash
-npm install three @react-three/fiber@^8 @react-three/drei@^9 leva
-npm install -D @types/three
-```
-
-No environment variables are required; the viewer runs entirely client-side.
-
----
-
-## Project Structure
-
-```
-app/
-  api/
-    chat/
-      route.ts
-      tools.ts
-  lab/
-    3d/
-      page.tsx
-  playground/
-    motion-button/
-      page.tsx
-
-components/
-  chat/
-  tools/
-  ui/
-    async-action-button.tsx
-    lifecycle-button-presets.tsx
-
-features/
-  chat/
-  three/
-    components/
-      model-viewer.tsx
-      scene-fallback.tsx
-    lib/
-      use-prefers-reduced-motion.ts
-      use-low-power-context.ts
-
-lib/
-```
-
----
-
-## Local Development
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-Then open:
-
-```
-http://localhost:3000
-```
-
----
-
-## Development-only state triggers
-
-The following hooks are enabled only while running `npm run dev`. They are ignored in a production build and do not call the model provider, so each UI state can be demonstrated safely.
-
-| State | Chat trigger phrase | Query parameter alternative | Result |
-|---|---|---|---|
-| Route error | `trigger route error` | `/ai?test=route-error` | Throws in the AI route and displays the `error.tsx` Recover boundary. |
-| Mid-stream failure | `trigger stream error` | `/api/chat?test=stream-error` | Sends a partial assistant response, then interrupts the AI SDK stream. |
-| HTTP rate limit | `trigger rate limit` | `/api/chat?test=rate-limit` | Returns HTTP 429 with `Retry-After`. |
-| Network-like timeout | `trigger timeout` | `/api/chat?test=timeout` | Waits five seconds to expose the skeleton, then returns HTTP 504. |
-| Malformed tool response | `trigger malformed tool response` | `/api/chat?test=malformed-tool` | Emits an invalid `scoreLead` result through the AI SDK UI-message stream. |
-
-For the API query-parameter forms, use a REST client or temporarily configure the chat transport endpoint. The phrase forms work directly from the portfolio assistant.
-
-The motion button's success/failure states don't need a dev-only trigger —
-`/playground/motion-button` has always-on forced-success and forced-failure
-buttons, plus a random-outcome (20% failure) pair, so evaluators can see
-every state without special setup.
-
-The 3D viewer's fallback state can be forced by enabling "Reduce motion" in
-your OS accessibility settings before visiting `/lab/3d` — no dev-only flag
-needed, since it's driven by the real `prefers-reduced-motion` media query.
-
----
-
-## Learning Goals
-
-This project was developed as part of the FlyRank AI Engineering Internship.
-
-It demonstrates practical experience with:
-
-- AI-assisted frontend engineering
-- Streaming user interfaces
-- Server-side AI tool execution
-- Structured generative UI
-- Type-safe APIs with Zod
-- Production-oriented React architecture
-- Human-in-the-loop AI workflows
-- Intentional micro-interaction design (state-driven motion, reduced-motion support)
-- Interactive 3D on the web (React Three Fiber), shipped with an explicit load/performance budget
+Drag-and-drop `.glb` loading, a live material configurator (leva), and a
+fallback-first loading strategy so the ~600KB Three.js/fiber/drei/leva
+bundle never loads outside `/lab/3d`. Full write-up with real bundle-size
+and frame-rate numbers:
+[`week-seven/THREE_D_EXPERIENCE.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-seven/THREE_D_EXPERIENCE.md).
 
 ---
 
 ## License
 
-This project is available under the MIT License.
+MIT.
