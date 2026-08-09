@@ -87,7 +87,7 @@ export default function WorkPage() {
     <Section>
       <div className="mx-auto max-w-3xl space-y-10">
         <header className="space-y-2">
-          <h1 className="text-display text-primary">Work</h1>
+          <h1 className="text-h1 font-title text-primary">Selected Work</h1>
           <p className="max-w-2xl text-muted-foreground">
             Case studies covering the Plan, Build, Test, and Document phases —
             what the problem was, what I did, and what came out of it.

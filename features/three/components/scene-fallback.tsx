@@ -37,7 +37,7 @@ export function SceneFallback({ reason, onEnable }: SceneFallbackProps) {
 
   return (
     <div className="flex h-full min-h-[24rem] flex-col items-center justify-center gap-4 rounded-xl border bg-[radial-gradient(circle_at_30%_20%,var(--color-blue-soft,theme(colors.muted.DEFAULT))_0%,transparent_60%)] bg-card p-8 text-center">
-      <div className="grid size-14 place-items-center rounded-full bg-secondary text-accent">
+      <div className="grid size-14 place-items-center rounded-full bg-[var(--color-blue-soft)] text-accent">
         <Box aria-hidden="true" className="size-7" />
       </div>
       <div className="space-y-1">

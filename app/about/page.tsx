@@ -5,7 +5,7 @@ export default function AboutPage() {
     <section className="px-page-x py-section">
       <div className="mx-auto max-w-3xl space-y-8">
         <header className="space-y-2">
-          <h1 className="text-display text-primary">About</h1>
+          <h1 className="text-h1 font-title text-primary">About</h1>
           <p className="max-w-2xl text-muted-foreground">
             Clear, practical, curious, and evidence-first — how I got here and
             how I work.

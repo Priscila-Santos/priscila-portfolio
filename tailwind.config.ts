@@ -14,8 +14,8 @@ const config: Config = {
           foreground: "var(--primary-foreground)",
         },
         accent: {
-          DEFAULT: "var(--accent)",
-          foreground: "var(--accent-foreground)",
+          DEFAULT: "var(--color-blue-accent)",
+          foreground: "#ffffff",
         },
         neutral: {
           50: "rgb(var(--color-neutral-50) / <alpha-value>)",

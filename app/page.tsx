@@ -7,8 +7,6 @@ export default function HomePage() {
     <>
       <ShaderHero>
         <div className="space-y-4 px-page-x py-section text-white">
-          <h1 className="text-display drop-shadow-sm">Home</h1>
-
           <p className="max-w-xl text-white/90 drop-shadow-sm">
             I&apos;m Priscila Santos, a Front-End AI Engineering Intern building
             production React and Next.js applications with AI as a development
