@@ -5,9 +5,27 @@ import type { ReactNode } from "react";
 // declaration is present. Suppress the error for this global stylesheet.
 // @ts-ignore
 import "./globals.css";
-import { GeistSans } from "geist/font/sans";
+import { Syne, Inter, Space_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { MobileNav } from "@/components/mobile-nav";
+import { ThemeScript } from "@/components/theme-script";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+const syne = Syne({
+  subsets: ["latin"],
+  weight: ["700", "800"],
+  variable: "--font-title",
+});
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-code",
+});
 
 export const metadata: Metadata = {
   title: "Priscila Santos — Front-End AI Engineering",
@@ -16,10 +34,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={cn("font-sans", GeistSans.variable)}>
+    <html
+      lang="en"
+      className={cn("font-sans", syne.variable, inter.variable, spaceMono.variable)}
+      suppressHydrationWarning
+    >
+      <head>
+        <ThemeScript />
+      </head>
       <body>
         <header className="border-b border-neutral-200">
-          <nav aria-label="Main navigation" className="px-page-x py-page-y">
+          <nav aria-label="Main navigation" className="flex items-center justify-between px-page-x py-page-y">
             <ul className="hidden flex-wrap gap-6 text-nav sm:flex">
               <li>
                 <Link className="text-primary hover:text-accent" href="/">Home</Link>
@@ -43,6 +68,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               </li>
             </ul>
             <MobileNav />
+            <ThemeToggle />
           </nav>
         </header>
         <main>{children}</main>

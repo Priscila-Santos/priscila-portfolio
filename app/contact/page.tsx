@@ -24,7 +24,7 @@ export default function ContactPage() {
     <section className="px-page-x py-section">
       <div className="mx-auto max-w-2xl space-y-8">
         <header className="space-y-2">
-          <h1 className="text-display text-primary">Contact</h1>
+          <h1 className="text-display text-primary">Get in Touch</h1>
           <p className="max-w-xl text-muted-foreground">
             If you&apos;re looking for a frontend engineer who uses AI
             thoughtfully, communicates engineering decisions clearly, and
