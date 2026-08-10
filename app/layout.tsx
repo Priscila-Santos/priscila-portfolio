@@ -31,7 +31,10 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "Priscila Santos — Front-End AI Engineering",
-  description: "Front-End AI Engineering intern building interactive, accessible web experiences and AI-powered applications with React, TypeScript, and the Vercel AI SDK."
+  description: "Front-End AI Engineering intern building interactive, accessible web experiences and AI-powered applications with React, TypeScript, and the Vercel AI SDK.",
+  icons: {
+    icon: "/assets/favicon.png",
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -48,7 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <header className="border-b border-neutral-200">
           <nav
             aria-label="Main navigation"
-            className="relative flex h-16 items-center justify-between px-page-x"
+            className="relative flex h-20 items-center justify-between px-page-x"
           >
             <MobileNav />
 
@@ -57,17 +60,19 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               aria-label="Go to homepage"
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:static sm:order-first sm:translate-x-0 sm:translate-y-0"
             >
-              <div className="h-9 w-9 overflow-hidden rounded sm:h-11 sm:w-11">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 transition-transform duration-300 hover:scale-105 hover:drop-shadow-lg">
                 <Image
-                  src="/assets/PS-logo.png"
+                  src="/assets/logo.png"
                   alt="Priscila Santos"
-                  width={96}
-                  height={96}
+                  width={128}
+                  height={128}
                   priority
-                  className="h-full w-full scale-150 object-contain"
+                  className="h-full w-full object-contain"
                 />
               </div>
             </Link>
+
+
 
             <ul className="hidden flex-wrap gap-6 text-nav sm:flex">
               <li>

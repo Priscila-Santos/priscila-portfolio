@@ -18,8 +18,8 @@ export default function AboutPage() {
           <Image
             src="/assets/priscila-portrait.png"
             alt="Priscila Santos"
-            width={96}
-            height={96}
+            width={120}
+            height={120}
             className="rounded-full border border-border object-cover"
           />
           <div className="space-y-2">
