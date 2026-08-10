@@ -10,10 +10,13 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "rgb(var(--color-primary) / <alpha-value>)",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--color-blue-accent)",
           foreground: "#ffffff",
         },
-        accent: "rgb(var(--color-accent) / <alpha-value>)",
         neutral: {
           50: "rgb(var(--color-neutral-50) / <alpha-value>)",
           100: "rgb(var(--color-neutral-100) / <alpha-value>)",
@@ -59,24 +62,33 @@ const config: Config = {
           ring: "var(--sidebar-ring)"
         }
       },
+      fontFamily: {
+        title: ["var(--font-title)"],
+        sans: ["var(--font-body)"],
+        code: ["var(--font-code)"],
+      },
+      fontSize: {
+        body: ["var(--font-size-body)", { lineHeight: "var(--line-height-body)" }],
+        nav: ["var(--font-size-nav)", { lineHeight: "var(--line-height-nav)" }],
+        display: ["var(--fs-display)", { lineHeight: "var(--lh-tight)" }],
+        h1: ["var(--fs-h1)", { lineHeight: "var(--lh-tight)" }],
+        h2: ["var(--fs-h2)", { lineHeight: "var(--lh-normal)" }],
+        body2: ["var(--fs-body)", { lineHeight: "var(--lh-normal)" }],
+        small: ["var(--fs-small)", { lineHeight: "var(--lh-normal)" }],
+      },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)"
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
       },
       spacing: {
         "page-x": "var(--space-page-x)",
         "page-y": "var(--space-page-y)",
         section: "var(--space-section)"
       },
-      fontSize: {
-        body: ["var(--font-size-body)", { lineHeight: "var(--line-height-body)" }],
-        nav: ["var(--font-size-nav)", { lineHeight: "var(--line-height-nav)" }],
-        display: ["var(--font-size-display)", { lineHeight: "var(--line-height-display)" }]
-      },
-      // Added for FE-AA1 (Buttons with a Brain): powers
-      // motion-safe:animate-shake / motion-safe:animate-pop in
-      // components/ui/async-action-button.tsx
       keyframes: {
         shake: {
           "0%, 100%": { transform: "translateX(0)" },

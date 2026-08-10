@@ -122,7 +122,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex h-[min(62dvh,36rem)] min-h-[20rem] flex-col overflow-hidden rounded-xl border bg-card shadow-sm sm:h-[min(60dvh,36rem)]">
+    <div className="flex h-[min(80dvh,44rem)] min-h-[28rem] flex-col overflow-hidden rounded-xl border bg-card shadow-sm sm:h-[min(75dvh,44rem)]">
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollContainerRef}
@@ -137,7 +137,7 @@ export function ChatInterface() {
         >
           {messages.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-2 py-8 text-center">
-              <div className="mb-4 grid size-12 place-items-center rounded-full bg-secondary text-accent">
+              <div className="mb-4 grid size-12 place-items-center rounded-full bg-[var(--color-blue-soft)] text-accent">
                 <MessageCircleMore aria-hidden="true" className="size-6" />
               </div>
               <h2 className="text-base font-semibold text-card-foreground">No conversation yet</h2>

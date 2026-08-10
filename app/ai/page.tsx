@@ -21,7 +21,7 @@ export default function AiPage({ searchParams }: AiPageProps) {
       <div className="mx-auto max-w-4xl space-y-6">
         <header className="space-y-2">
           <p className="text-sm font-medium text-accent">Portfolio assistant</p>
-          <h1 className="text-display text-primary">Ask about my work</h1>
+          <h1 className="text-h1 font-title text-primary">Ask about my work</h1>
           <p className="max-w-2xl text-muted-foreground">
             Ask about my projects, front-end engineering approach, or how I use
             AI responsibly.

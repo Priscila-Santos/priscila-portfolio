@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Section } from "@/components/ui/section";
 import Link from "next/link";
 
 type CaseStudy = {
@@ -12,7 +14,7 @@ type CaseStudy = {
 
 const caseStudies: CaseStudy[] = [
   {
-    title: "This Portfolio",
+    title: "Site Portfolio",
     stack: "Next.js · TypeScript · Tailwind CSS · Vercel AI SDK",
     aiRole: "AI-powered feature",
     problem:
@@ -82,10 +84,10 @@ const caseStudies: CaseStudy[] = [
 
 export default function WorkPage() {
   return (
-    <section className="px-page-x py-section">
+    <Section>
       <div className="mx-auto max-w-3xl space-y-10">
         <header className="space-y-2">
-          <h1 className="text-display text-primary">Work</h1>
+          <h1 className="text-h1 font-title text-primary">Selected Work</h1>
           <p className="max-w-2xl text-muted-foreground">
             Case studies covering the Plan, Build, Test, and Document phases —
             what the problem was, what I did, and what came out of it.
@@ -110,12 +112,12 @@ export default function WorkPage() {
                 <h2 className="text-xl font-semibold text-card-foreground">
                   {study.title}
                 </h2>
-                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <Badge variant="blue" className="font-code normal-case tracking-normal">
                   {study.stack}
-                </span>
-                <span className="rounded-full bg-blue-soft px-2 py-0.5 text-xs font-medium text-blue-accent">
+                </Badge>
+                <Badge variant={study.aiRole === "AI-powered feature" ? "pink" : "blue"}>
                   {study.aiRole}
-                </span>
+                </Badge>
               </div>
 
               <div className="mt-4 space-y-4 text-sm leading-6">
@@ -157,6 +159,6 @@ export default function WorkPage() {
           ))}
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
