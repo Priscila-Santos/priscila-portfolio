@@ -35,13 +35,11 @@ the FlyRank AI Engineering Internship (Frontend AI Engineering track).
 
 ## Screenshots
 
-> Real screenshots are still missing — tracked honestly in
-> [Known limitations](#known-limitations--still-ugly-list) below rather
-> than faked. Once captured (desktop + mobile, per page), they belong here:
->
-> | Home | Work | AI Assistant |
-> |---|---|---|
-> | _pending_ | _pending_ | _pending_ |
+| Home | Work | AI Assistant |
+|---|---|---|
+| <p align="center"><img src="./public/assets/home.jpg" width="250"/></p> | <p align="center"><img src="./public/assets/work.jpg" width="250"/></p> | <p align="center"><img src="./public/assets/ai-assistant.jpg" width="250"/></p> |
+
+
 
 ---
 
