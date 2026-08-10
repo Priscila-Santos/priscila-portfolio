@@ -1,4 +1,3 @@
-// components/mobile-nav.tsx
 "use client";
 
 import { useState } from "react";
@@ -31,7 +30,10 @@ export function MobileNav() {
       </button>
 
       {open && (
-        <ul id="mobile-nav-menu" className="mt-2 flex flex-col gap-1">
+        <ul
+          id="mobile-nav-menu"
+          className="absolute inset-x-0 top-full z-30 flex flex-col gap-1 border-b border-border bg-background px-page-x py-4 shadow-card"
+        >
           {links.map((link) => (
             <li key={link.href}>
               <Link

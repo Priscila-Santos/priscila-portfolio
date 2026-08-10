@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { MobileNav } from "@/components/mobile-nav";
 import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FloatingAiButton } from "@/components/floating-ai-button";
+import Image from "next/image";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -44,11 +46,30 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       </head>
       <body>
         <header className="border-b border-neutral-200">
-          <nav aria-label="Main navigation" className="flex items-center justify-between px-page-x py-page-y">
+          <nav
+            aria-label="Main navigation"
+            className="relative flex h-16 items-center justify-between px-page-x"
+          >
+            <MobileNav />
+
+            <Link
+              href="/"
+              aria-label="Go to homepage"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sm:static sm:order-first sm:translate-x-0 sm:translate-y-0"
+            >
+              <div className="h-9 w-9 overflow-hidden rounded sm:h-11 sm:w-11">
+                <Image
+                  src="/assets/PS-logo.png"
+                  alt="Priscila Santos"
+                  width={96}
+                  height={96}
+                  priority
+                  className="h-full w-full scale-150 object-contain"
+                />
+              </div>
+            </Link>
+
             <ul className="hidden flex-wrap gap-6 text-nav sm:flex">
-              <li>
-                <Link className="text-primary hover:text-accent" href="/">Home</Link>
-              </li>
               <li>
                 <Link className="text-primary hover:text-accent" href="/work">Work</Link>
               </li>
@@ -62,16 +83,15 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <Link className="text-primary hover:text-accent" href="/playground">Playground</Link>
               </li>
               <li>
-                {/* FE-AA2: 3D model viewer, kept as its own route so its heavy
-                    Three.js bundle never loads on any other page. */}
                 <Link className="text-primary hover:text-accent" href="/lab/3d">3D Lab</Link>
               </li>
             </ul>
-            <MobileNav />
+
             <ThemeToggle />
           </nav>
         </header>
-        <main>{children}</main>
+        <main id="main-content">{children}</main>
+        <FloatingAiButton />
       </body>
     </html>
   );
