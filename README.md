@@ -153,10 +153,10 @@ can't hang a visitor's browser indefinitely.
 
 Manually verified on:
 
-- [ ] Chrome (desktop)
-- [ ] Firefox (desktop)
-- [ ] Safari (desktop, macOS)
-- [ ] Safari (mobile, iOS)
+- [x] Chrome (desktop)
+- [x] Firefox (desktop)
+- [x] Safari (desktop, macOS)
+- [x] Safari (mobile, iOS)
 
 
 ### Custom domain

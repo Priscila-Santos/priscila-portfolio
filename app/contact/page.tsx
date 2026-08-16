@@ -1,29 +1,35 @@
-import { Mail, Link2, FileText } from "lucide-react";
+import { Mail, Link2, FileText, Download } from "lucide-react";
 
 const contactLinks = [
-  { 
-    label: "Email", 
-    value: "priscila.santos.psds@gmail.com", 
+  {
+    label: "Email",
+    value: "priscila.santos.psds@gmail.com",
     href: "mailto:priscila.santos.psds@gmail.com",
-    icon: Mail
+    icon: Mail,
+    external: false,
   },
-  { 
-    label: "LinkedIn", 
-    value: "linkedin.com/in/priscilasdsantos/", 
-    href: "https://www.linkedin.com/in/priscilasdsantos/" ,
-    icon: Link2
+  {
+    label: "LinkedIn",
+    value: "linkedin.com/in/priscilasdsantos/",
+    href: "https://www.linkedin.com/in/priscilasdsantos/",
+    icon: Link2,
+    external: true,
   },
   {
     label: "GitHub",
     value: "github.com/Priscila-Santos",
     href: "https://github.com/Priscila-Santos",
-    icon: Link2
+    icon: Link2,
+    external: true,
   },
-  { 
-    label: "Resume", 
-    value: "Priscila-Santos-Resume", 
-    href: "https://1drv.ms/b/c/a8ba1b696edd1899/IQCBFdZzwPdcQop1UhEFuGIsAfrEbfYfw_HxHJ7Yixfaikc?e=IczEDC",
-    icon: FileText
+  {
+    label: "Resume",
+    value: "View resume (PDF)",
+    // Served from /public/assets/resume.pdf — same origin, no third-party
+    // link to keep valid. Opens the PDF directly in the browser tab.
+    href: "/assets/resume.pdf",
+    icon: FileText,
+    external: true,
   },
 ];
 
@@ -43,25 +49,42 @@ export default function ContactPage() {
 
         <dl className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
           {contactLinks.map((link) => (
-            <div 
-              key={link.label} 
+            <div
+              key={link.label}
               className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
             >
               <dt className="w-24 shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {link.label}
               </dt>
               <dd className="flex items-center gap-2">
-                <link.icon className="h-4 w-4 text-primary" />
+                <link.icon className="h-4 w-4 text-primary" aria-hidden="true" />
                 <a
                   href={link.href}
+                  target={link.external ? "_blank" : undefined}
+                  rel={link.external ? "noopener noreferrer" : undefined}
                   className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                 >
                   {link.value}
+                  {link.external && (
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  )}
                 </a>
               </dd>
             </div>
           ))}
         </dl>
+
+        {/* Explicit download action, separate from the "view" link above —
+            gives a recruiter a one-click download without first opening
+            the PDF viewer if that's what they'd rather do. */}
+        <a
+          href="/assets/resume.pdf"
+          download="Priscila-Santos-Resume.pdf"
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Download className="h-4 w-4" aria-hidden="true" />
+          Download resume (PDF)
+        </a>
 
         <p className="text-sm text-muted-foreground">
           Information Systems student and Front-End AI Engineering Intern at FlyRank AI — open to conversations about frontend or AI-assisted engineering roles.

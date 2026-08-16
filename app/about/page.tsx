@@ -16,7 +16,7 @@ export default function AboutPage() {
       <div className="mx-auto max-w-3xl space-y-10">
         <header className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <Image
-            src="/assets/priscila-portrait.png"
+            src="/assets/priscila-portrait.jpg"
             alt="Priscila Santos"
             width={120}
             height={120}

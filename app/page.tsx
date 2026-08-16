@@ -87,7 +87,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-3xl flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <Image
-              src="/assets/priscila-portrait.png"
+              src="/assets/priscila-portrait.jpg"
               alt="Priscila Santos"
               width={72}
               height={72}
