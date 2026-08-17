@@ -13,6 +13,48 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingAiButton } from "@/components/floating-ai-button";
 import Image from "next/image";
 
+const SITE_URL = "https://priscila-portfolio.vercel.app";
+const SITE_TITLE = "Priscila Santos — Front-End AI Engineering";
+const SITE_DESCRIPTION =
+  "Front-End AI Engineering intern building interactive, accessible web experiences and AI-powered applications with React, TypeScript, and the Vercel AI SDK.";
+
+export const metadata: Metadata = {
+  // Required by Next.js to resolve the absolute URL for Open Graph/Twitter
+  // images below — without it, relative image paths silently fail to
+  // resolve into a valid social-share preview.
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  icons: {
+    icon: "/assets/favicon.png",
+  },
+  other: {
+    google: "notranslate",
+  },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Priscila Santos — Portfolio",
+    images: [
+      {
+        url: "/assets/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Priscila Santos — Front-End AI Engineering",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/assets/og-image.jpg"],
+  },
+};
+
 const syne = Syne({
   subsets: ["latin"],
   weight: ["700", "800"],
@@ -29,18 +71,11 @@ const spaceMono = Space_Mono({
   variable: "--font-code",
 });
 
-export const metadata: Metadata = {
-  title: "Priscila Santos — Front-End AI Engineering",
-  description: "Front-End AI Engineering intern building interactive, accessible web experiences and AI-powered applications with React, TypeScript, and the Vercel AI SDK.",
-  icons: {
-    icon: "/assets/favicon.png",
-  }
-};
-
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"
+      translate="no"
       className={cn("font-sans", syne.variable, inter.variable, spaceMono.variable)}
       suppressHydrationWarning
     >
@@ -71,8 +106,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 />
               </div>
             </Link>
-
-
 
             <ul className="hidden flex-wrap gap-6 text-nav sm:flex">
               <li>
