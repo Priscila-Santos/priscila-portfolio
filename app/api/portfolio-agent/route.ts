@@ -11,6 +11,7 @@ import {
   portfolioAgentTools,
 } from "@/lib/ai/portfolio-agent";
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { MAX_MESSAGES, MAX_MESSAGE_CHARS } from "@/lib/ai/limits";
 
 /**
  * Caps how long this route may run before the platform kills it. The agent
@@ -20,12 +21,6 @@ import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
  * plan's function timeout differs.
  */
 export const maxDuration = 30;
-
-// Input caps: a visitor should never be able to send a message list large
-// enough, or a single message long enough, to run up real API cost. These
-// numbers are generous for genuine conversation and tight for a script.
-const MAX_MESSAGES = 40;
-const MAX_MESSAGE_CHARS = 4000;
 
 function isRequestTooLarge(messages: UIMessage[]): boolean {
   if (messages.length > MAX_MESSAGES) {

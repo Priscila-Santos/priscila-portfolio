@@ -25,7 +25,7 @@ function hasWebGL(): boolean {
     const canvas = document.createElement("canvas");
     return Boolean(
       window.WebGLRenderingContext &&
-        (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
+      (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"))
     );
   } catch {
     return false;
@@ -42,7 +42,6 @@ export function ShaderHero({ children }: ShaderHeroProps) {
   const [readyToUpgrade, setReadyToUpgrade] = useState(false);
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
 
-  // 🔄 Novo useEffect atualizado
   useEffect(() => {
     let idleId: number | undefined;
     let timeoutId: number | undefined;
