@@ -9,6 +9,11 @@ const badgeVariants = cva(
       variant: {
         pink: "bg-[var(--color-soft-pink)] text-[var(--color-pop-pink)]",
         blue: "bg-[var(--color-blue-soft)] text-[var(--color-blue-accent)]",
+        // Neutral: for metadata that isn't itself the highlight (e.g. tech
+        // stack tags) — kept visually distinct from pink/blue so those two
+        // colors stay reserved for meaningful roles (CTA vs. technical /
+        // AI-role signals) instead of colliding with plain tag chips.
+        neutral: "bg-muted text-muted-foreground",
       },
     },
     defaultVariants: {

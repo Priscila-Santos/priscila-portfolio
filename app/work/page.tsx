@@ -2,87 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import Link from "next/link";
 
-type CaseStudy = {
-  title: string;
-  stack: string;
-  aiRole: "AI-powered feature" | "AI-assisted development";
-  problem: string;
-  whatIDid: string[];
-  outcome: string;
-  link?: { label: string; href: string };
-};
+import { getCaseStudies } from "@/lib/work/case-studies";
 
-const caseStudies: CaseStudy[] = [
-  {
-    title: "Site Portfolio",
-    stack: "Next.js · TypeScript · Tailwind CSS · Vercel AI SDK",
-    aiRole: "AI-powered feature",
-    problem:
-      "Most developer portfolios list technologies and projects but don't give a hiring manager enough evidence to see how the developer thinks, makes decisions, or uses AI responsibly.",
-    whatIDid: [
-      "Defined a proof statement, a specific audience, and a single call to action, then designed a sitemap where every page supports that goal.",
-      "Built a streaming AI assistant on this site using the Vercel AI SDK and Claude: server-side tool calls, incremental rendering, accessible live-region updates, and explicit error/retry states.",
-      "Used AI as a thinking partner throughout planning, not just for code: challenging my sitemap, reviewing information architecture, and pressure-testing whether each page actually connects to the interview CTA.",
-    ],
-    outcome:
-      "A portfolio built around evidence instead of claims, with a working example of AI-assisted engineering (this chat feature) as one of the pieces of evidence itself.",
-    link: { label: "Ask the AI assistant", href: "/ai" },
-  },
-  {
-    title: "3D Model Viewer",
-    stack: "React Three Fiber · @react-three/drei · leva · Next.js",
-    aiRole: "AI-assisted development",
-    problem:
-      "FE-AA2 asked for a shipped, interactive 3D experience in the browser — not a demo screenshot — that loads responsibly and works on a phone, not just a desktop with a GPU to spare.",
-    whatIDid: [
-      "Built a drag-and-drop GLB viewer: drop any .glb file onto the canvas and it auto-centers, auto-scales, and stages itself with environment lighting and soft contact shadows via drei's Stage component.",
-      "Added a live configurator (leva) for base color, metalness, roughness, a wireframe toggle, environment preset, and auto-rotate speed, applied by traversing the loaded scene graph's materials.",
-      "Kept the 3D vendor bundle (three.js + fiber + drei + leva) out of every other page by lazy-loading the canvas with next/dynamic (ssr: false), and gated it behind a static, zero-motion fallback that respects prefers-reduced-motion and a best-effort low-power/data-saver check.",
-    ],
-    outcome:
-      "A working, mobile-usable 3D scene (touch orbit/zoom via drei's OrbitControls) with an explicit performance budget instead of an unbounded one — documented with real bundle-size and frame-rate notes in the project README.",
-    link: { label: "Open the 3D Lab", href: "/lab/3d" },
-  },
-  {
-    title: "Academic Planner App",
-    stack: "React",
-    aiRole: "AI-assisted development",
-    problem:
-      "For my Algorithm Design I course, I needed a way to help students organize assignments, exams, and deadlines in one place. I also set myself a personal bar beyond the course requirement: a full React application balancing usability, organization, and maintainable code.",
-    whatIDid: [
-      "Designed and built the app with reusable components, organizing the interface around a student's daily workflow rather than around technical features.",
-      "Made the navigation, task organization, and responsive layout decisions myself.",
-      "Used AI throughout development to brainstorm implementation approaches, review code, troubleshoot issues, and improve documentation, while keeping the final engineering decisions mine.",
-    ],
-    outcome:
-      "Demonstrates taking an idea from planning through implementation, balancing technical requirements with user experience, and using AI to accelerate development without replacing my own problem-solving.",
-    link: {
-      label: "View repository",
-      href: "https://github.com/Priscila-Santos/Academico-Planner-App",
-    },
-  },
-  {
-    title: "AI Task Manager",
-    stack: "React · Vite · GitHub Copilot",
-    aiRole: "AI-assisted development",
-    problem:
-      "A homework assignment built specifically to show how AI can be used as a development assistant throughout a project's lifecycle, not just as a code generator.",
-    whatIDid: [
-      "Used Copilot for architecture planning first (folder structure, state management, data model) before writing any code.",
-      "Implemented CRUD, search, filters, and Local Storage persistence with custom hooks (useLocalStorage, useTasks).",
-      "Had Copilot perform a structured code review afterward — accessibility, performance, code smells — and used it to recommend the most valuable Vitest/RTL tests, not just any tests.",
-      "Manually fixed a missing stylesheet import Copilot's review missed, and redesigned the task-statistics section into cards myself.",
-    ],
-    outcome:
-      "Full prompt history and reflection are documented in the repo. My role was to guide the AI, validate its output, and take responsibility for the final implementation.",
-    link: {
-      label: "View repository",
-      href: "https://github.com/Priscila-Santos/AI-task-manager",
-    },
-  },
-];
+export default async function WorkPage() {
+  const caseStudies = await getCaseStudies();
 
-export default function WorkPage() {
   return (
     <Section>
       <div className="mx-auto max-w-3xl space-y-10">
@@ -105,19 +29,32 @@ export default function WorkPage() {
         <div className="space-y-8">
           {caseStudies.map((study) => (
             <article
-              key={study.title}
+              key={study.slug}
               className="rounded-xl border bg-card p-6 shadow-sm"
             >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-xl font-semibold text-card-foreground">
-                  {study.title}
-                </h2>
-                <Badge variant="blue" className="font-code normal-case tracking-normal">
-                  {study.stack}
-                </Badge>
-                <Badge variant={study.aiRole === "AI-powered feature" ? "pink" : "blue"}>
-                  {study.aiRole}
-                </Badge>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-xl font-semibold text-card-foreground">
+                    {study.title}
+                  </h2>
+                  {study.aiRole && (
+                    <Badge variant={study.aiRole === "AI-powered feature" ? "pink" : "blue"}>
+                      {study.aiRole}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {study.stack.map((tech) => (
+                    <Badge
+                      key={tech}
+                      variant="neutral"
+                      className="font-code normal-case tracking-normal"
+                    >
+                      {tech}
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-4 space-y-4 text-sm leading-6">
