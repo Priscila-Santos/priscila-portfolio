@@ -12,6 +12,8 @@ import { ThemeScript } from "@/components/theme-script";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FloatingAiButton } from "@/components/floating-ai-button";
 import Image from "next/image";
+import { Footer } from "@/components/footer";
+import { Analytics } from "@vercel/analytics/react";
 
 const SITE_URL = "https://priscila-portfolio.vercel.app";
 const SITE_TITLE = "Priscila Santos — Front-End AI Engineering";
@@ -130,6 +132,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         </header>
         <main id="main-content">{children}</main>
         <FloatingAiButton />
+        {/* <Footer /> */}
+        <Analytics />
       </body>
     </html>
   );
