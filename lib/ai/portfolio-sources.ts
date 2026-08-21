@@ -1,57 +1,100 @@
-import { readdir, readFile } from "fs/promises";
+import { readFile } from "fs/promises";
 import matter from "gray-matter";
 import path from "path";
 
-/**
- * Adapted from lib/ai/sources.ts (Study-Grounded Study Notes Agent).
- * Same pattern, different content root: portfolio project/bio pages
- * instead of study material.
- */
-const PORTFOLIO_DIR = path.join(process.cwd(), "content", "portfolio");
+import { getCaseStudies, type CaseStudy } from "@/lib/work/case-studies";
 
-async function getAllowedSlugs(): Promise<string[]> {
-  const files = await readdir(PORTFOLIO_DIR);
-  return files
-    .filter((file) => file.endsWith(".md"))
-    .map((file) => file.replace(/\.md$/, ""));
+const ABOUT_PATH = path.join(process.cwd(), "content", "portfolio", "about.md");
+
+export type PortfolioSourceSummary = {
+  slug: string;
+  title: string;
+  topic: string;
+  stack: string;
+};
+
+export type PortfolioSource = {
+  slug: string;
+  title: string;
+  content: string;
+};
+
+/** Reassembles a CaseStudy's structured fields back into the same
+ * Problem/What I Did/Outcome markdown shape the source file was written
+ * in, so checkGrounding's word-overlap heuristic sees the same text a
+ * human editing content/work/*.md would. */
+function caseStudyToContent(study: CaseStudy): string {
+  return [
+    `## Problem\n${study.problem}`,
+    `## What I Did\n${study.whatIDid.map((item) => `- ${item}`).join("\n")}`,
+    `## Outcome\n${study.outcome}`,
+  ].join("\n\n");
 }
 
-export async function listPortfolioSources(): Promise<
-  { slug: string; title: string; topic: string; stack: string }[]
-> {
-  const files = await readdir(PORTFOLIO_DIR);
-  const markdownFiles = files.filter((file) => file.endsWith(".md"));
+async function readAboutSource(): Promise<PortfolioSource | null> {
+  try {
+    const raw = await readFile(ABOUT_PATH, "utf-8");
+    const { data, content } = matter(raw);
 
-  return Promise.all(
-    markdownFiles.map(async (file) => {
-      const slug = file.replace(/\.md$/, "");
-      const raw = await readFile(path.join(PORTFOLIO_DIR, file), "utf-8");
-      const { data } = matter(raw);
-
-      return {
-        slug,
-        title: String(data.title ?? slug),
-        topic: String(data.topic ?? ""),
-        stack: String(data.stack ?? ""),
-      };
-    }),
-  );
+    return {
+      slug: "about",
+      title: String(data.title ?? "About"),
+      content: content.trim(),
+    };
+  } catch {
+    return null;
+  }
 }
 
-export async function readPortfolioSource(
-  slug: string,
-): Promise<{ slug: string; title: string; content: string } | null> {
-  const allowedSlugs = await getAllowedSlugs();
-  if (!allowedSlugs.includes(slug)) {
+async function readAboutSummary(): Promise<PortfolioSourceSummary | null> {
+  try {
+    const raw = await readFile(ABOUT_PATH, "utf-8");
+    const { data } = matter(raw);
+
+    return {
+      slug: "about",
+      title: String(data.title ?? "About"),
+      topic: String(data.topic ?? "Background"),
+      stack: String(data.stack ?? ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function listPortfolioSources(): Promise<PortfolioSourceSummary[]> {
+  const [about, caseStudies] = await Promise.all([readAboutSummary(), getCaseStudies()]);
+
+  const caseStudySummaries: PortfolioSourceSummary[] = caseStudies.map((study) => ({
+    slug: study.slug,
+    title: study.title,
+    // Previously each content/portfolio file had its own hand-written
+    // "topic" string (e.g. "React project"). Using the stack list here
+    // instead is slightly less editorial but stays accurate automatically
+    // as content/work/*.md changes, and is arguably more useful for the
+    // model to match a query like "which project uses Java?".
+    topic: study.stack.join(", "),
+    stack: study.stack.join(", "),
+  }));
+
+  return about ? [about, ...caseStudySummaries] : caseStudySummaries;
+}
+
+export async function readPortfolioSource(slug: string): Promise<PortfolioSource | null> {
+  if (slug === "about") {
+    return readAboutSource();
+  }
+
+  const caseStudies = await getCaseStudies();
+  const match = caseStudies.find((study) => study.slug === slug);
+
+  if (!match) {
     return null;
   }
 
-  const raw = await readFile(path.join(PORTFOLIO_DIR, `${slug}.md`), "utf-8");
-  const { data, content } = matter(raw);
-
   return {
-    slug,
-    title: String(data.title ?? slug),
-    content: content.trim(),
+    slug: match.slug,
+    title: match.title,
+    content: caseStudyToContent(match),
   };
 }

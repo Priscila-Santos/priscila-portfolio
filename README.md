@@ -18,10 +18,13 @@ the FlyRank AI Engineering Internship (Frontend AI Engineering track).
   studies with a Problem → What I Did → Outcome structure.
 - `/ai` — a portfolio assistant that answers visitor questions about my
   background and projects. It is a real **agent**, not a prompt-stuffed
-  chatbot: it calls `listProjects` / `readProject` to pull facts from
-  `content/portfolio/*.md`, drafts an answer, then calls `checkGrounding`
-  (a deterministic word-overlap check) before finalizing — capped at two
-  grounding passes so it can't loop forever. See
+  chatbot: it calls `listProjects` / `readProject` to pull facts from the
+  same `content/work/*.md` case studies rendered on `/work` (plus
+  `content/portfolio/about.md` for bio), drafts an answer, then calls
+  `checkGrounding` (a deterministic word-overlap check) before finalizing
+  — capped at two grounding passes so it can't loop forever. Sharing one
+  content source with the Work page means the assistant's answers can't
+  drift from what a visitor sees on the page. See
   [`week-five/ASSIGNMENT_COACH.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-five/ASSIGNMENT_COACH.md) and
   [`week-six/EXPLAIN_MY_CODE.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-six/EXPLAIN_MY_CODE.md) for the
   full design and how it actually works under the hood.
@@ -52,7 +55,8 @@ Browser
       -> POST /api/portfolio-agent
         -> app/api/portfolio-agent/route.ts           (rate limit -> input caps -> streamText)
           -> lib/ai/portfolio-agent.ts + portfolio-agent-tools.ts
-            -> lib/ai/portfolio-sources.ts             (reads content/portfolio/*.md)
+            -> lib/ai/portfolio-sources.ts             (unifies content/work/*.md + content/portfolio/about.md)
+              -> lib/work/case-studies.ts               (CaseStudyProvider — same source app/work/page.tsx reads)
             -> Google Gemini (via @ai-sdk/google)
 ```
 
@@ -66,6 +70,11 @@ The design intentionally keeps each layer to one responsibility:
 - **Agent module** — the system prompt and the tool-driven decision loop
   (identify source → read source → draft → check grounding → revise once
   if needed → finalize).
+- **Content source** — `content/work/*.md`, the same markdown files that
+  render the Work page's case studies, adapted for the agent's tools by
+  `lib/ai/portfolio-sources.ts`. Only bio content
+  (`content/portfolio/about.md`) is a separate file, since it isn't a
+  project.
 - **Model provider** — Google Gemini, called only from the server.
 
 Full request/streaming lifecycle, hook-by-hook explanation, and the
@@ -175,7 +184,7 @@ checklist there is the source of truth for finishing this step.
 app/
   ai/page.tsx                       # /ai route + metadata
   api/portfolio-agent/route.ts      # server POST endpoint (rate limit, caps, streaming)
-  work/page.tsx
+  work/page.tsx                     # /work route (reads lib/work/case-studies.ts)
   about/page.tsx
   contact/page.tsx
   lab/3d/                           # lazy-loaded 3D viewer route
@@ -190,11 +199,14 @@ lib/
     portfolio-chat.ts               # Gemini model selection
     portfolio-agent.ts              # system prompt + decision loop
     portfolio-agent-tools.ts        # listProjects / readProject / checkGrounding / scoreLead
-    portfolio-sources.ts            # reads content/portfolio/*.md
+    portfolio-sources.ts            # unifies content/work/*.md + content/portfolio/about.md as grounding sources
+  work/
+    case-studies.ts                 # CaseStudyProvider — reads content/work/*.md, also used by app/work/page.tsx
   rate-limit.ts                     # in-memory per-IP limiter (this checkpoint)
   utils.ts
 
-content/portfolio/*.md              # grounding source for the AI assistant
+content/work/*.md                   # case study source — single source of truth for /work and the AI assistant
+content/portfolio/about.md          # bio source for the AI assistant
 
 components/ui/                      # shared, reusable primitives (Button, Dialog, Tabs, etc.)
 ```
@@ -213,10 +225,18 @@ components/ui/                      # shared, reusable primitives (Button, Dialo
   [`week-five/ASSIGNMENT_COACH.md`](https://github.com/Priscila-Santos/flyrank-ai-fluency/blob/main/week-five/ASSIGNMENT_COACH.md). The
   assistant decides which source to read and whether a draft needs
   revision — it isn't a fixed script.
+- **One content source for both the Work page and the AI assistant** —
+  `content/work/*.md` originally only fed the Work page; the assistant
+  had its own separate copy in `content/portfolio/*.md`. That duplication
+  was removed by having `lib/ai/portfolio-sources.ts` read from the same
+  `CaseStudyProvider` (`lib/work/case-studies.ts`) the Work page uses, so
+  a project's facts can never drift between what the page shows and what
+  the assistant says. Only bio content stays separate.
 - **Local markdown files instead of an external fetch tool for grounding**
   — keeps answers deterministic and verifiable for a demo, at the cost of
-  the assistant only knowing what's in `content/portfolio/`. Documented as
-  a deliberate scope cut in `week-five/BUILD_LOG.md`.
+  the assistant only knowing what's in `content/work/` and
+  `content/portfolio/about.md`. Documented as a deliberate scope cut in
+  `week-five/BUILD_LOG.md`.
 - **In-memory rate limiting instead of a hosted store** — a conscious
   trade-off for this project's traffic level and env-var footprint; see
   [Production deployment & hygiene](#production-deployment--hygiene-fe-11)
@@ -276,6 +296,9 @@ rather than hidden:
   above.
 - Cross-browser pass checkboxes above are unchecked until actually run.
 - Custom domain not yet configured.
+- The Psychologist Website case study (`content/work/psychologist-website.md`)
+  is missing its real tech stack and a repo/demo link — both left as
+  visible `TODO`/omitted rather than guessed.
 - `npm audit` flags high-severity CVEs rooted in the pinned Next.js
   14.2.35; upgrading to Next 16 is a breaking change deferred post-launch
   as documented in `week-five/BUILD_LOG.md`.
