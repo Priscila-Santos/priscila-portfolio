@@ -1,16 +1,11 @@
 ---
 title: "Sentiment Analysis Hackathon"
 stack: ["Java", "Spring Boot"]
-aiRole: "AI-assisted development"
+link:
+  label: "View repository"
+  href: "https://github.com/oracle-next-education-hackathon"
 order: 6
-# NOTE: migrated from content/portfolio/project-sentiment-hackathon.md as
-# part of unifying the AI assistant's grounding sources with the Work
-# page's case studies (previously this project was known to the AI
-# assistant but never shown as a card on /work — see the unification
-# note in lib/ai/portfolio-sources.ts). If you don't want this project
-# publicly listed on /work yet, delete this file; it will only affect
-# the Work page, not the assistant, once about.md and the other case
-# studies are enough on their own.
+
 ---
 
 ## Problem
