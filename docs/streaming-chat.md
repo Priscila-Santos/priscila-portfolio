@@ -9,6 +9,18 @@ This guide explains the AI chat feature in Priscila Santos's portfolio. It is wr
 > **Google Gemini** at `/api/portfolio-agent`. This revision documents the
 > real, deployed implementation. See `week-five/ASSIGNMENT_COACH.md` and
 > `week-six/EXPLAIN_MY_CODE.md` for the full reasoning behind that design.
+>
+> **Second revision note:** the assistant's grounding sources used to live
+> in their own copy at `content/portfolio/*.md`, entirely separate from
+> the case studies rendered on `/work` (`content/work/*.md`). That meant
+> every project's facts had to be kept in sync by hand across two places.
+> `lib/ai/portfolio-sources.ts` now reads project sources from the same
+> `content/work/*.md` files the Work page uses (via
+> `lib/work/case-studies.ts`'s `CaseStudyProvider`), so there is exactly
+> one place to edit a project's facts and the assistant can't answer
+> something that contradicts what's shown on `/work`. Only bio content
+> (`content/portfolio/about.md`) remains separate, since it isn't a
+> project and doesn't belong on the Work page.
 
 ## 1. Architecture overview
 
@@ -23,7 +35,8 @@ Browser
           -> lib/rate-limit.ts               (per-IP request cap, before any model call)
           -> lib/ai/portfolio-agent.ts        (system prompt + decision loop)
           -> lib/ai/portfolio-agent-tools.ts  (listProjects / readProject / checkGrounding / scoreLead)
-            -> lib/ai/portfolio-sources.ts    (reads content/portfolio/*.md)
+            -> lib/ai/portfolio-sources.ts    (unifies content/work/*.md + content/portfolio/about.md)
+              -> lib/work/case-studies.ts     (CaseStudyProvider — same source app/work/page.tsx reads)
           -> Google Gemini (via @ai-sdk/google)
 ```
 
@@ -42,6 +55,7 @@ This separation is useful because a visual change normally stays in the client c
 app/
   ai/page.tsx                             # Route and metadata for /ai
   api/portfolio-agent/route.ts            # Server POST endpoint: rate limit -> input caps -> streamText
+  work/page.tsx                           # /work route — also reads lib/work/case-studies.ts
 
 features/
   chat/components/
@@ -54,11 +68,14 @@ lib/
     portfolio-chat.ts                     # Gemini model selection
     portfolio-agent.ts                    # System prompt + grounding decision loop
     portfolio-agent-tools.ts              # listProjects / readProject / checkGrounding / scoreLead
-    portfolio-sources.ts                  # Reads content/portfolio/*.md
+    portfolio-sources.ts                  # Unifies content/work/*.md (case studies) + content/portfolio/about.md as grounding sources
+  work/
+    case-studies.ts                       # CaseStudyProvider — reads content/work/*.md, also used by app/work/page.tsx
   rate-limit.ts                           # Per-IP request cap
   utils.ts                                # Shared class-name utility
 
-content/portfolio/*.md                    # Grounding source: bio + project write-ups
+content/work/*.md                         # Case study grounding source, shared with the Work page (single source of truth)
+content/portfolio/about.md                # Bio grounding source
 
 components/
   ui/button.tsx                           # Reusable accessible button primitive
@@ -126,6 +143,8 @@ The route passes the model and these tools to `streamText`, capped at 5 steps to
 
 Model provider was switched from Anthropic to Google Gemini specifically because the assignment's "completely free construction platform" constraint rules out a paid Anthropic key — see `week-five/BUILD_LOG.md` (Session 2) for the full reasoning.
 
+`listProjects` and `readProject` are backed by `lib/ai/portfolio-sources.ts`, which itself pulls project data from `lib/work/case-studies.ts` — the same `CaseStudyProvider` that renders `/work`. Only the bio source (`about`) is read from a separate file, `content/portfolio/about.md`.
+
 ## 7. Component guide
 
 ### `app/ai/page.tsx`
@@ -162,6 +181,10 @@ This module is the single configuration point for the Gemini model. Centralizing
 ### `lib/ai/portfolio-agent.ts` and `lib/ai/portfolio-agent-tools.ts`
 
 These own, respectively, the system prompt/decision loop and the tool implementations (including the `checkGrounding` word-overlap heuristic). Splitting them keeps the "how the agent should behave" text separate from "what each tool actually does."
+
+### `lib/ai/portfolio-sources.ts` and `lib/work/case-studies.ts`
+
+`case-studies.ts` owns the `CaseStudyProvider` interface and its markdown implementation, reading `content/work/*.md` for the Work page. `portfolio-sources.ts` adapts that same data into the shape the agent's tools expect, and adds the separate bio source. Keeping the adapter in its own file means the agent's tools never depend on the Work page's rendering concerns, while still sharing one underlying data source.
 
 ### `lib/rate-limit.ts`
 
@@ -296,7 +319,7 @@ For local development:
 1. Push the repository to the connected Git provider.
 2. Import the repository into Vercel.
 3. In **Project Settings → Environment Variables**, add `GOOGLE_GENERATIVE_AI_API_KEY`.
-4. Select the environments that need it, typically Production and Preview. Add Development if using Vercel's cloud development environment.
+4. Select the environments that need it, typically Production and Preview. Add Development only if using Vercel's cloud development environment.
 5. Deploy or redeploy after saving the variable.
 6. Open `/ai` in the deployed site and complete a real streaming test, including a question that should trigger a tool call (e.g. "tell me about the 3D viewer project").
 
@@ -314,6 +337,7 @@ Never place the key in client-side source code, `NEXT_PUBLIC_*` variables, a com
 - [ ] Test a malformed request body against `/api/portfolio-agent` and confirm it returns `400`.
 - [ ] Send more than 40 messages (or one longer than 4,000 characters) and confirm the route returns `413` instead of calling the model.
 - [ ] Send more than 8 requests in a minute from the same client and confirm the route returns `429` with a `Retry-After` header.
+- [ ] Ask about a project that exists on `/work` and confirm the assistant's answer doesn't contradict the case study shown there.
 
 ### Stop and errors
 
@@ -397,6 +421,10 @@ npx tsc --noEmit
 
 This checks all TypeScript and TSX files without generating application output. Fix the first reported error, then rerun it before deployment.
 
+### A project shown on /work isn't found by the assistant, or vice versa
+
+Since both now read from `content/work/*.md` (via `lib/work/case-studies.ts`), a mismatch usually means a case study file is missing required frontmatter (`title`, `stack`) that `MarkdownCaseStudyProvider` can't parse, or the file lives outside `content/work/`. Check `lib/ai/portfolio-sources.ts`'s `listPortfolioSources()` output directly (e.g. with a temporary log) if in doubt.
+
 ## 19. Future improvements
 
 - Add a retry action for failed requests.
@@ -409,5 +437,6 @@ This checks all TypeScript and TSX files without generating application output. 
 - Add Playwright end-to-end tests with a mocked streaming route for repeatable scrolling, tool-call rendering, and Stop-button checks.
 - Consider reduced-motion preferences before adding any additional animation.
 - Add provider-error logging and observability that redacts user messages and secrets.
+- Move `content/portfolio/about.md` into the same `CaseStudyProvider`-style abstraction as case studies, so bio content also gets the same future migration path to an external source (Notion, Sanity, etc.) documented in `lib/work/case-studies.ts`.
 
 The current implementation deliberately stays small: it demonstrates a real tool-using, self-checking agent, streaming AI interaction, user control over scrolling, accessible status feedback, production-hygiene guards (rate limiting, input caps, a request timeout), and server-only secret handling — without introducing unnecessary infrastructure.
