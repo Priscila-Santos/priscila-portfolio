@@ -12,7 +12,6 @@ import type { PortfolioAgentMessage } from "@/lib/ai/portfolio-agent-tools";
 import { cn } from "@/lib/utils";
 
 export function ChatInterface() {
-  // useState keeps the controlled textarea value in the browser between renders.
   const [input, setInput] = useState("");
   const trimmedLength = input.trim().length;
   const isTooLong = trimmedLength > MAX_MESSAGE_CHARS;
@@ -125,7 +124,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex h-[min(80dvh,44rem)] min-h-[28rem] flex-col overflow-hidden rounded-xl border bg-card shadow-sm sm:h-[min(75dvh,44rem)]">
+    <div className="flex min-h-[22rem] max-h-[44rem] flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollContainerRef}
