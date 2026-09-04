@@ -9,8 +9,7 @@ const links = [
   { href: "/work", label: "Work" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
-  { href: "/playground", label: "Playground" },
-  { href: "/lab/3d", label: "3D Lab" },
+  { href: "/experiments", label: "Experiments" },
 ];
 
 export function MobileNav() {
