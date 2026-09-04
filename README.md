@@ -305,6 +305,51 @@ rather than hidden:
 
 ---
 
+## Eval results (v2)
+
+The five evaluation cases below were written **before** the agent was
+built (`week-five/ASSIGNMENT_COACH.md` §6), so there was a concrete
+pass/fail definition to test against once code existed. They were run
+against the Source-Grounded Study Notes Agent prototype
+(`content/sources/`), whose tool contract and decision loop
+(`listSources`/`readSource`/`checkGrounding`, capped grounding checks)
+were then adapted directly into this portfolio's own `/ai` assistant
+(`content/portfolio/`, `lib/ai/portfolio-agent.ts`) — same loop, same
+guardrails, different content root. A live end-to-end run of the
+production version itself is documented separately in
+`week-eight/MAKE_IT_DO_SOMETHING.md`.
+
+| # | Case | Expected behavior | Result | Evidence |
+|---|---|---|---|---|
+| 1 | Topic match, no source named | Agent calls `listSources`, matches the right source without an unnecessary clarifying question | ✅ Pass | `BUILD_LOG.md`, Session 1 |
+| 2 | Missing source | Agent states plainly that nothing matches, instead of answering from general knowledge | ✅ Pass | `BUILD_LOG.md`, Session 3b — tested with *"how can I build an agent?"* |
+| 3 | Grounded draft, first pass | Draft passes `checkGrounding` with zero unsupported claims, no revision needed | ✅ Pass | `BUILD_LOG.md`, Session 1 |
+| 4 | Grounded draft, revision required | First check flags unsupported claims on a synthesis-heavy question; agent revises once and re-checks | ⚠️ Pass, after tuning | `BUILD_LOG.md`, Session 3 — overlap threshold was initially too strict and over-flagged legitimate synthesis; loosened until true fabrications were still caught but valid synthesis wasn't |
+| 5 | Hard cap enforcement | Agent stops after exactly 2 `checkGrounding` calls and reports any remaining unsupported claims, rather than looping | ✅ Pass | `BUILD_LOG.md`, Session 4 |
+
+**A confirmed limitation found during this testing, not a pass/fail
+case on its own:** `checkGrounding`'s word-overlap heuristic reliably
+false-flagged the draft's own markdown title/heading line as an
+unsupported claim, even when every real factual claim underneath was
+grounded correctly. Reproduced independently across two sessions before
+being treated as a real pattern rather than noise
+(`BUILD_LOG.md`, Sessions 3b and 5). The heading-specific case is fixed
+in `lib/ai/portfolio-agent-tools.ts` by excluding markdown heading lines
+before scoring; the underlying limitation — a word-overlap heuristic
+can't fully distinguish structural formatting from a factual claim — is
+not fixed and is listed below.
+
+**Honest scope note:** cases 1–5 above were verified against the
+prototype sharing this agent's exact decision loop, not against a
+separate five-case run of the deployed `/ai` route itself. The
+production route's own live verification is a single successful
+end-to-end request (`MAKE_IT_DO_SOMETHING.md`), plus the refusal
+behavior re-confirmed live in that same document. A full five-case re-run
+against `content/portfolio/` specifically is a reasonable next step, not
+something already done and being described as done here.
+
+---
+
 ## AI Lead-Scoring Tool
 
 The portfolio assistant includes a server-side tool, `scoreLead`, that
