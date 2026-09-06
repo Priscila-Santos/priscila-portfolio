@@ -124,7 +124,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex min-h-[22rem] max-h-[44rem] flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div className="flex h-full max-h-[46rem] min-h-[22rem] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollContainerRef}
@@ -138,7 +138,7 @@ export function ChatInterface() {
           className="h-full space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain p-4 pb-6 sm:p-6"
         >
           {messages.length === 0 ? (
-            <div className="flex min-h-full flex-col items-center justify-center px-2 py-8 text-center">
+            <div className="flex h-full flex-col items-center px-2 pb-8 pt-6 text-center sm:pt-10">
               <div className="mb-4 grid size-12 place-items-center rounded-full bg-[var(--color-blue-soft)] text-accent">
                 <MessageCircleMore aria-hidden="true" className="size-6" />
               </div>

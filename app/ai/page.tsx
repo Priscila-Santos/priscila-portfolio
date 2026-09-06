@@ -15,19 +15,14 @@ export default function AiPage({ searchParams }: AiPageProps) {
   if (process.env.NODE_ENV !== "production" && searchParams?.test === "route-error") {
     throw new Error("Development-only route error.");
   }
-  
+
   return (
-    <section className="flex min-h-[calc(100dvh-5rem)] flex-col px-page-x py-4 sm:py-6">
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 sm:gap-6">
+    <section className="flex h-[calc(100dvh-5rem)] flex-col overflow-hidden px-page-x py-4 sm:py-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3">
         <header className="shrink-0 space-y-1">
           <p className="text-sm font-medium text-accent">Portfolio assistant</p>
-          <h1 className="text-h1 font-title text-primary">Ask about my work</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Ask about my projects, front-end engineering approach, or how I use
-            AI responsibly.
-          </p>
+          <h1 className="text-h2 font-title text-primary sm:text-h1">Ask about my work</h1>
         </header>
-
         <ChatInterface />
       </div>
     </section>
